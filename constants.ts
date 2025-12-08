@@ -1,5 +1,6 @@
 
 
+
 import { Service, Testimonial, ServiceDetail, Language, Product } from './types';
 
 export type { Language }; // Re-export Language type
@@ -70,7 +71,12 @@ export const TEXT_CONTENT = {
       terms: "Terms of Service",
       quickLinks: "Quick Links",
       services: "Services & More",
-      contactInfo: "Contact Info"
+      contactInfo: "Contact Info",
+      team: "Meet the Team"
+    },
+    team: {
+      title: 'Our Team',
+      subtitle: 'Meet the talented individuals behind ValuePixels who make digital magic happen.'
     },
     servicePage: {
       back: 'Back to Services',
@@ -243,7 +249,12 @@ export const TEXT_CONTENT = {
       terms: "Términos de Servicio",
       quickLinks: "Enlaces Rápidos",
       services: "Servicios y Más",
-      contactInfo: "Información de Contacto"
+      contactInfo: "Información de Contacto",
+      team: "Conoce al Equipo"
+    },
+    team: {
+      title: 'Nuestro Equipo',
+      subtitle: 'Conozca a las personas talentosas detrás de ValuePixels.'
     },
     servicePage: {
       back: 'Volver a Servicios',
@@ -416,7 +427,12 @@ export const TEXT_CONTENT = {
       terms: "Conditions d'utilisation",
       quickLinks: "Liens rapides",
       services: "Services et plus",
-      contactInfo: "Infos contact"
+      contactInfo: "Infos contact",
+      team: "L'équipe"
+    },
+    team: {
+      title: 'Notre Équipe',
+      subtitle: 'Rencontrez les talents derrière ValuePixels.'
     },
     servicePage: {
       back: 'Retour aux services',
@@ -589,7 +605,12 @@ export const TEXT_CONTENT = {
       terms: "AGB",
       quickLinks: "Schnelllinks",
       services: "Leistungen & Mehr",
-      contactInfo: "Kontakt"
+      contactInfo: "Kontakt",
+      team: "Das Team"
+    },
+    team: {
+      title: 'Unser Team',
+      subtitle: 'Lernen Sie die talentierten Menschen hinter ValuePixels kennen.'
     },
     servicePage: {
       back: 'Zurück zu Leistungen',
@@ -762,7 +783,12 @@ export const TEXT_CONTENT = {
       terms: "شروط الخدمة",
       quickLinks: "روابط سريعة",
       services: "الخدمات والمزيد",
-      contactInfo: "معلومات الاتصال"
+      contactInfo: "معلومات الاتصال",
+      team: "فريقنا"
+    },
+    team: {
+      title: 'فريقنا',
+      subtitle: 'تعرف على المبدعين في ValuePixels.'
     },
     servicePage: {
       back: 'العودة للخدمات',
@@ -1045,6 +1071,46 @@ export const getTestimonials = (lang: Language): Testimonial[] => {
           company: 'ConstructBuild',
           content: 'Excellent communication throughout the project. They understood our brand vision perfectly and translated it into a modern, professional website.',
           avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80'
+        },
+        {
+            id: 't7',
+            name: 'Robert Fox',
+            role: 'Director',
+            company: 'Alpha Innovations',
+            content: 'The ROI on our new website was almost immediate. ValuePixels understands business goals, not just code.',
+            avatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80'
+        },
+        {
+            id: 't8',
+            name: 'Emily Zhang',
+            role: 'VP Sales',
+            company: 'CloudScale',
+            content: 'Their team is proactive, efficient, and transparent. The best agency experience we have had in years.',
+            avatar: 'https://images.unsplash.com/photo-1554151228-14d9def656ec?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80'
+        },
+        {
+            id: 't9',
+            name: 'Daniel Kim',
+            role: 'Founder',
+            company: 'StartUp Lab',
+            content: 'We needed a complex MVP in 4 weeks. They delivered in 3. Incredible speed without sacrificing quality.',
+            avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80'
+        },
+        {
+            id: 't10',
+            name: 'Lisa Patel',
+            role: 'Marketing Head',
+            company: 'EcoGreen',
+            content: 'Our organic traffic tripled within 6 months of their SEO overhaul. Real results backed by data.',
+            avatar: 'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80'
+        },
+        {
+            id: 't11',
+            name: 'Mark Thompson',
+            role: 'Owner',
+            company: 'Thompson Realty',
+            content: 'The new site design perfectly captures our premium brand image. Clients love the easy navigation.',
+            avatar: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80'
         }
     ]
 };

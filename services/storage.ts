@@ -1,5 +1,5 @@
 
-import { User, Order, BlogPost, CustomPage, Product, PaymentAccount, SiteConfig } from '../types';
+import { User, Order, BlogPost, CustomPage, Product, PaymentAccount, SiteConfig, TeamMember } from '../types';
 import { MOCK_PRODUCTS } from '../constants';
 
 // Initial Seed Data
@@ -37,6 +37,33 @@ const INITIAL_POSTS: BlogPost[] = [
         views: 1240, 
         date: '2023-10-15',
         author: 'ValuePixels Team' 
+    }
+];
+
+const INITIAL_TEAM: TeamMember[] = [
+    {
+        id: 'tm-1',
+        name: 'Alex Rivera',
+        role: 'Lead Developer',
+        bio: 'Full-stack expert with 10+ years in React and Node.js ecosystems.',
+        image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80',
+        socials: { twitter: '#', github: '#' }
+    },
+    {
+        id: 'tm-2',
+        name: 'Sarah Chen',
+        role: 'Creative Director',
+        bio: 'Award-winning UI/UX designer passionate about user-centric experiences.',
+        image: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80',
+        socials: { linkedin: '#' }
+    },
+    {
+        id: 'tm-3',
+        name: 'Michael Ross',
+        role: 'SEO Strategist',
+        bio: 'Data-driven marketer helping brands dominate search rankings.',
+        image: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80',
+        socials: { twitter: '#' }
     }
 ];
 
@@ -112,5 +139,9 @@ export const storage = {
 
     // SITE CONFIG
     getSiteConfig: () => get<SiteConfig>('sf_config', DEFAULT_CONFIG),
-    saveSiteConfig: (config: SiteConfig) => set('sf_config', config)
+    saveSiteConfig: (config: SiteConfig) => set('sf_config', config),
+
+    // TEAM MEMBERS
+    getTeamMembers: () => get<TeamMember[]>('sf_team', INITIAL_TEAM),
+    saveTeamMembers: (members: TeamMember[]) => set('sf_team', members)
 };

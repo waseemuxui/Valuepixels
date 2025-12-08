@@ -71,6 +71,7 @@ const Footer: React.FC<FooterProps> = ({ lang, onNavigate, customPages = [], sit
               <li><button onClick={(e) => handleLinkClick(e, 'ai-consultant')} className="hover:text-brand-primary hover:pl-2 transition-all">{tNav.ai}</button></li>
               <li><button onClick={(e) => handleLinkClick(e, 'contact')} className="hover:text-brand-primary hover:pl-2 transition-all">{tNav.contact}</button></li>
               <li><button onClick={(e) => handleLinkClick(e, 'blog')} className="hover:text-brand-primary hover:pl-2 transition-all">Blog</button></li>
+              <li><button onClick={(e) => handleLinkClick(e, 'team')} className="hover:text-brand-primary hover:pl-2 transition-all">{t.footer.team || 'Team'}</button></li>
             </ul>
           </div>
 

@@ -14,9 +14,10 @@ import OrderPage from './components/OrderPage';
 import ShopPage from './components/ShopPage';
 import LegalPage from './components/LegalPage';
 import ToolsPage from './components/ToolsPage';
+import TeamPage from './components/TeamPage';
 import { getServices, getTestimonials, TEXT_CONTENT, Language } from './constants';
 import { ArrowRight, CheckCircle, Code, Rocket, Shield, MessageCircle, Star } from 'lucide-react';
-import { User, BlogPost, CustomPage, Order, Product, SiteConfig } from './types';
+import { User, BlogPost, CustomPage, Order, Product, SiteConfig, TeamMember } from './types';
 import { storage } from './services/storage';
 
 const App: React.FC = () => {
@@ -33,6 +34,7 @@ const App: React.FC = () => {
   const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [allPosts, setAllPosts] = useState<BlogPost[]>([]);
   const [allPages, setAllPages] = useState<CustomPage[]>([]);
+  const [allTeam, setAllTeam] = useState<TeamMember[]>([]);
 
   // Site Config State
   const [siteConfig, setSiteConfig] = useState<SiteConfig>(storage.getSiteConfig());
@@ -44,6 +46,7 @@ const App: React.FC = () => {
     setAllProducts(storage.getProducts());
     setOrders(storage.getOrders());
     setSiteConfig(storage.getSiteConfig());
+    setAllTeam(storage.getTeamMembers());
     
     // Check for logged in user session (simplified)
     const storedUser = localStorage.getItem('sf_session_user');
@@ -143,6 +146,7 @@ const App: React.FC = () => {
   const isUserDashboard = currentView === 'user-dashboard';
   const isShop = currentView === 'shop';
   const isTools = currentView === 'tools';
+  const isTeam = currentView === 'team';
   const isBlog = currentView === 'blog' || currentView.startsWith('blog/');
   const isService = services.some(s => s.id === currentView);
   const isOrder = currentView === 'order';
@@ -178,6 +182,8 @@ const App: React.FC = () => {
                 setPages={setAllPages}
                 products={allProducts}
                 setProducts={setAllProducts}
+                teamMembers={allTeam}
+                setTeamMembers={setAllTeam}
             />
         ) : isUserDashboard && user ? (
             <UserDashboard 
@@ -196,6 +202,8 @@ const App: React.FC = () => {
             />
         ) : isTools ? (
             <ToolsPage lang={lang} />
+        ) : isTeam ? (
+            <TeamPage teamMembers={allTeam} lang={lang} />
         ) : isBlog ? (
             <BlogPage 
                 posts={allPosts} 
