@@ -158,3 +158,21 @@ Wasmer Edge allows you to deploy static sites globally using the `static-web-ser
     ```
 
 *Note: You may need to edit the `name` field in `wasmer.toml` to match your own namespace/app-name on Wasmer.*
+
+---
+
+## 9. Vercel
+**File:** `vercel.json` (Place in project root)
+
+Vercel typically detects Vite/React apps automatically, but adding this file ensures client-side routing (handling 404s) works correctly for deep links.
+
+```json
+{
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
+```
