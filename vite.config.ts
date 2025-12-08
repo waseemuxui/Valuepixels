@@ -9,6 +9,9 @@ export default defineConfig({
     sourcemap: false,
     minify: 'esbuild',
   },
+  define: {
+    'process.env': {}
+  },
   server: {
     host: true
   }
