@@ -30,7 +30,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin }) => {
         onLogin(user);
         onClose();
       } else {
-        setError('Invalid credentials. Try admin@sitefix.com / admin');
+        setError('Invalid credentials.');
       }
     } catch (err) {
       setError('Something went wrong. Please try again.');
@@ -58,7 +58,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin }) => {
 
         <div className="text-center mb-8">
           <h2 className="text-3xl font-bold text-white mb-2">
-            {isLoginView ? 'Welcome Back' : 'Join SiteFix'}
+            {isLoginView ? 'Welcome Back' : 'Join ValuePixels'}
           </h2>
           <p className="text-gray-400">
             {isLoginView ? 'Access your dashboard to manage services' : 'Create an account to start your project'}
@@ -122,12 +122,6 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin }) => {
           >
             {isLoginView ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
           </button>
-        </div>
-        
-        {/* Helper for demo */}
-        <div className="mt-8 pt-6 border-t border-white/5 text-center text-xs text-gray-500">
-            <p>Demo Admin: admin@sitefix.com / admin</p>
-            <p>Demo User: user@example.com / user</p>
         </div>
       </div>
     </div>
