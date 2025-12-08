@@ -2,6 +2,13 @@
 import { GoogleGenAI } from "@google/genai";
 import { storage } from './storage';
 
+// Define process for TypeScript check in frontend environment
+declare var process: {
+  env: {
+    [key: string]: string | undefined
+  }
+};
+
 // Helper to get authorized client
 const getClient = () => {
   const config = storage.getSiteConfig();

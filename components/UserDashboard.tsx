@@ -23,7 +23,9 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user, orders, onNavigate,
 
   // Helper to map status to localized string
   const getStatusText = (status: string) => {
-    return t.orders.statuses[status] || status.replace('_', ' ');
+    // Cast to Record<string, string> to allow string indexing
+    const statuses = t.orders.statuses as Record<string, string>;
+    return statuses[status] || status.replace('_', ' ');
   };
 
   return (
