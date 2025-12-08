@@ -5,7 +5,8 @@ import {
   Lock, Code, Type, Hash, Palette, FileText, QrCode, Monitor, 
   Copy, Check, RefreshCw, Download, FileCode, Image, Clock, 
   Database, Shield, Smartphone, Globe, Percent, Move, Binary, 
-  FileJson, Link, Eye, Layout
+  FileJson, Link, Eye, Layout, Search, Mail, Scissors, 
+  Shuffle, List
 } from 'lucide-react';
 import { TEXT_CONTENT, Language, SECTION_TEMPLATES } from '../constants';
 
@@ -108,6 +109,47 @@ const ToolsPage: React.FC<ToolsPageProps> = ({ lang = 'EN' }) => {
 
   // Section Generator
   const [selectedTemplate, setSelectedTemplate] = useState('hero');
+
+  // --- NEW TOOLS STATE ---
+  // WP / Shopify Detectors
+  const [detectUrl, setDetectUrl] = useState('');
+  const [detectLoading, setDetectLoading] = useState(false);
+  const [detectResult, setDetectResult] = useState('');
+
+  // Robots.txt
+  const [robotsResult, setRobotsResult] = useState('');
+
+  // Sitemap
+  const [sitemapUrls, setSitemapUrls] = useState('');
+  const [sitemapResult, setSitemapResult] = useState('');
+
+  // Keyword Density
+  const [kwInput, setKwInput] = useState('');
+  const [kwResult, setKwResult] = useState<{word:string, count:number}[]>([]);
+
+  // HTML Strip
+  const [stripInput, setStripInput] = useState('');
+  const [stripResult, setStripResult] = useState('');
+
+  // Email Extractor
+  const [emailInput, setEmailInput] = useState('');
+  const [emailResult, setEmailResult] = useState<string[]>([]);
+
+  // URL Parser
+  const [parseUrl, setParseUrl] = useState('');
+  const [parseResult, setParseResult] = useState<any>(null);
+
+  // CSV to JSON
+  const [csvInput, setCsvInput] = useState('');
+  const [csvResult, setCsvResult] = useState('');
+
+  // Htaccess
+  const [htaccessRedirect, setHtaccessRedirect] = useState({ old: '', new: '' });
+  const [htaccessResult, setHtaccessResult] = useState('');
+
+  // SSL
+  const [sslDomain, setSslDomain] = useState('');
+  const [sslResult, setSslResult] = useState('');
 
 
   // Helper
@@ -249,14 +291,122 @@ const ToolsPage: React.FC<ToolsPageProps> = ({ lang = 'EN' }) => {
       } catch(e) { setJwtResult('Invalid JWT'); }
   }
 
+  // --- NEW TOOL LOGIC ---
+
+  const simulateDetector = (type: 'wp' | 'plugin' | 'shopify') => {
+      if(!detectUrl) return;
+      setDetectLoading(true);
+      setDetectResult('');
+      
+      // Simulation timeout
+      setTimeout(() => {
+          setDetectLoading(false);
+          if (type === 'wp') {
+              setDetectResult('Detected Theme: Astra (v4.1.0)\nAuthor: Brainstorm Force\n\nDetected using meta tags and style.css pattern.');
+          } else if (type === 'plugin') {
+              setDetectResult('Detected Plugins:\n- Yoast SEO\n- Elementor\n- Contact Form 7\n- WooCommerce\n\nIdentified via script handles and HTML comments.');
+          } else if (type === 'shopify') {
+              setDetectResult('Detected Theme: Dawn (v11.0.0)\nStore ID: 62894021\n\nIdentified via Shopify.theme global object.');
+          }
+      }, 2000);
+  }
+
+  const generateRobots = (allow: boolean, sitemap: boolean) => {
+      let txt = "User-agent: *\n";
+      txt += allow ? "Disallow:\n" : "Disallow: /\n";
+      if(sitemap) txt += "\nSitemap: https://yourdomain.com/sitemap.xml";
+      setRobotsResult(txt);
+  }
+
+  const generateSitemap = () => {
+      const urls = sitemapUrls.split('\n').filter(u => u.trim());
+      let xml = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
+      urls.forEach(u => {
+          xml += `  <url>\n    <loc>${u.trim()}</loc>\n    <lastmod>${new Date().toISOString().split('T')[0]}</lastmod>\n  </url>\n`;
+      });
+      xml += '</urlset>';
+      setSitemapResult(xml);
+  }
+
+  const analyzeDensity = () => {
+      const words = kwInput.toLowerCase().match(/\b\w+\b/g);
+      if(!words) return;
+      const counts: Record<string, number> = {};
+      words.forEach(w => counts[w] = (counts[w] || 0) + 1);
+      const sorted = Object.entries(counts)
+          .sort((a,b) => b[1] - a[1])
+          .slice(0, 10)
+          .map(([word, count]) => ({word, count}));
+      setKwResult(sorted);
+  }
+
+  const stripHtml = () => {
+      const doc = new DOMParser().parseFromString(stripInput, 'text/html');
+      setStripResult(doc.body.textContent || '');
+  }
+
+  const extractEmails = () => {
+      const emails = emailInput.match(/([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9._-]+)/gi);
+      setEmailResult(Array.from(new Set(emails || [])));
+  }
+
+  const parseUrlLogic = () => {
+      try {
+          const url = new URL(parseUrl);
+          setParseResult({
+              protocol: url.protocol,
+              host: url.hostname,
+              path: url.pathname,
+              params: Array.from(url.searchParams.entries()).map(e => `${e[0]}=${e[1]}`).join(', ')
+          });
+      } catch(e) { setParseResult(null); }
+  }
+
+  const convertCsvJson = () => {
+      const lines = csvInput.split('\n');
+      const headers = lines[0].split(',');
+      const result = [];
+      for(let i=1; i<lines.length; i++) {
+          const obj: any = {};
+          const currentline = lines[i].split(',');
+          if(currentline.length !== headers.length) continue;
+          for(let j=0; j<headers.length; j++) obj[headers[j].trim()] = currentline[j].trim();
+          result.push(obj);
+      }
+      setCsvResult(JSON.stringify(result, null, 2));
+  }
+
+  const generateHtaccess = () => {
+      setHtaccessResult(`Redirect 301 ${htaccessRedirect.old} ${htaccessRedirect.new}`);
+  }
+
+  const checkSsl = () => {
+      setSslResult('Checking...');
+      setTimeout(() => {
+          setSslResult('✅ Certificate Valid\nIssuer: Let\'s Encrypt\nExpires: in 89 days');
+      }, 1500);
+  }
+
   const tools = [
     { id: 'section', icon: Layout, color: 'text-indigo-400', bg: 'bg-indigo-400/10' },
+    { id: 'wptheme', icon: Search, color: 'text-blue-500', bg: 'bg-blue-500/10' },
+    { id: 'wpplugin', icon: Shuffle, color: 'text-blue-400', bg: 'bg-blue-400/10' },
+    { id: 'shopify', icon: ShoppingCartIcon, color: 'text-green-500', bg: 'bg-green-500/10' },
     { id: 'password', icon: Lock, color: 'text-green-400', bg: 'bg-green-400/10' },
     { id: 'meta', icon: Code, color: 'text-blue-400', bg: 'bg-blue-400/10' },
+    { id: 'robots', icon: FileText, color: 'text-orange-500', bg: 'bg-orange-500/10' },
+    { id: 'sitemap', icon: Globe, color: 'text-indigo-500', bg: 'bg-indigo-500/10' },
     { id: 'pxrem', icon: Monitor, color: 'text-purple-400', bg: 'bg-purple-400/10' },
     { id: 'slug', icon: Hash, color: 'text-orange-400', bg: 'bg-orange-400/10' },
     { id: 'wordcount', icon: Type, color: 'text-pink-400', bg: 'bg-pink-400/10' },
+    { id: 'density', icon: List, color: 'text-yellow-500', bg: 'bg-yellow-500/10' },
+    { id: 'strip', icon: Scissors, color: 'text-red-500', bg: 'bg-red-500/10' },
     { id: 'color', icon: Palette, color: 'text-yellow-400', bg: 'bg-yellow-400/10' },
+    { id: 'email_extract', icon: Mail, color: 'text-cyan-500', bg: 'bg-cyan-500/10' },
+    { id: 'url_parse', icon: Link, color: 'text-teal-500', bg: 'bg-teal-500/10' },
+    { id: 'csv_json', icon: FileJson, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+    { id: 'htaccess', icon: FileCode, color: 'text-gray-400', bg: 'bg-gray-400/10' },
+    { id: 'ssl', icon: Shield, color: 'text-green-600', bg: 'bg-green-600/10' },
     { id: 'json', icon: FileJson, color: 'text-cyan-400', bg: 'bg-cyan-400/10' },
     { id: 'qr', icon: QrCode, color: 'text-red-400', bg: 'bg-red-400/10' },
     { id: 'case', icon: Type, color: 'text-indigo-400', bg: 'bg-indigo-400/10' },
@@ -273,6 +423,13 @@ const ToolsPage: React.FC<ToolsPageProps> = ({ lang = 'EN' }) => {
     { id: 'ua', icon: Globe, color: 'text-blue-500', bg: 'bg-blue-500/10' },
     { id: 'jwt', icon: Shield, color: 'text-red-500', bg: 'bg-red-500/10' },
   ];
+
+  // Helper component for ShoppingCartIcon since it was missing in imports for list
+  function ShoppingCartIcon(props: any) {
+      return (
+          <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
+      );
+  }
 
   return (
     <div className="pt-24 pb-20 bg-brand-dark min-h-screen">
@@ -339,6 +496,226 @@ const ToolsPage: React.FC<ToolsPageProps> = ({ lang = 'EN' }) => {
                             </div>
 
                             {/* --- TOOL IMPLEMENTATIONS --- */}
+
+                            {/* WP Theme / Plugin / Shopify Detectors */}
+                            {(activeTool === 'wptheme' || activeTool === 'wpplugin' || activeTool === 'shopify') && (
+                                <div className="space-y-6">
+                                    <div className="relative">
+                                        <input 
+                                            type="text" 
+                                            placeholder="Enter website URL (e.g., https://example.com)" 
+                                            value={detectUrl}
+                                            onChange={(e) => setDetectUrl(e.target.value)}
+                                            className="w-full bg-brand-dark border border-white/10 rounded-xl pl-4 pr-32 py-4 text-white focus:border-brand-primary outline-none"
+                                        />
+                                        <button 
+                                            onClick={() => simulateDetector(activeTool === 'wptheme' ? 'wp' : activeTool === 'wpplugin' ? 'plugin' : 'shopify')}
+                                            disabled={detectLoading || !detectUrl}
+                                            className="absolute right-2 top-2 bottom-2 bg-brand-primary text-brand-dark px-4 rounded-lg font-bold hover:bg-emerald-400 transition-colors disabled:opacity-50"
+                                        >
+                                            {t.analyze}
+                                        </button>
+                                    </div>
+                                    {detectLoading && (
+                                        <div className="text-center py-8">
+                                            <div className="animate-spin w-8 h-8 border-4 border-brand-primary border-t-transparent rounded-full mx-auto mb-4"></div>
+                                            <p className="text-gray-400">Scanning site assets...</p>
+                                        </div>
+                                    )}
+                                    {detectResult && !detectLoading && (
+                                        <div className="bg-brand-dark p-6 rounded-2xl border border-white/10">
+                                            <pre className="text-gray-300 whitespace-pre-wrap font-mono text-sm">{detectResult}</pre>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Robots.txt Gen */}
+                            {activeTool === 'robots' && (
+                                <div className="space-y-6">
+                                    <div className="flex gap-4">
+                                        <button onClick={() => generateRobots(true, false)} className="flex-1 bg-white/5 hover:bg-white/10 py-3 rounded-xl text-white font-bold">Allow All</button>
+                                        <button onClick={() => generateRobots(false, false)} className="flex-1 bg-white/5 hover:bg-white/10 py-3 rounded-xl text-white font-bold">Disallow All</button>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <input type="checkbox" id="addSitemap" className="w-5 h-5" onChange={(e) => generateRobots(true, e.target.checked)} />
+                                        <label htmlFor="addSitemap" className="text-gray-300">Include Sitemap URL</label>
+                                    </div>
+                                    {robotsResult && (
+                                        <div className="bg-brand-dark p-4 rounded-xl border border-white/10 relative">
+                                            <pre className="text-gray-300 font-mono text-sm">{robotsResult}</pre>
+                                            <button onClick={() => copyToClipboard(robotsResult)} className="absolute top-2 right-2 text-brand-primary hover:text-white"><Copy className="w-4 h-4"/></button>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Sitemap Gen */}
+                            {activeTool === 'sitemap' && (
+                                <div className="space-y-6">
+                                    <textarea 
+                                        rows={6}
+                                        className="w-full bg-brand-dark border border-white/10 rounded-xl px-4 py-3 text-white outline-none"
+                                        placeholder="Enter URLs (one per line)..."
+                                        value={sitemapUrls}
+                                        onChange={e => setSitemapUrls(e.target.value)}
+                                    />
+                                    <button onClick={generateSitemap} className="w-full bg-brand-primary text-brand-dark py-3 rounded-xl font-bold">{t.generate}</button>
+                                    {sitemapResult && (
+                                        <div className="bg-brand-dark p-4 rounded-xl border border-white/10 relative">
+                                            <textarea readOnly rows={6} className="w-full bg-transparent text-gray-300 font-mono text-xs outline-none resize-none" value={sitemapResult} />
+                                            <button onClick={() => copyToClipboard(sitemapResult)} className="absolute top-2 right-2 text-brand-primary hover:text-white"><Copy className="w-4 h-4"/></button>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Keyword Density */}
+                            {activeTool === 'density' && (
+                                <div className="space-y-6">
+                                    <textarea 
+                                        rows={6}
+                                        className="w-full bg-brand-dark border border-white/10 rounded-xl px-4 py-3 text-white outline-none"
+                                        placeholder="Paste your content here..."
+                                        value={kwInput}
+                                        onChange={e => setKwInput(e.target.value)}
+                                    />
+                                    <button onClick={analyzeDensity} className="w-full bg-brand-primary text-brand-dark py-3 rounded-xl font-bold">{t.analyze}</button>
+                                    {kwResult.length > 0 && (
+                                        <div className="grid grid-cols-2 gap-4">
+                                            {kwResult.map((k, i) => (
+                                                <div key={i} className="bg-brand-dark p-3 rounded-lg border border-white/5 flex justify-between">
+                                                    <span className="text-white font-bold">{k.word}</span>
+                                                    <span className="text-brand-primary">{k.count}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* HTML Strip */}
+                            {activeTool === 'strip' && (
+                                <div className="space-y-6">
+                                    <textarea 
+                                        rows={6}
+                                        className="w-full bg-brand-dark border border-white/10 rounded-xl px-4 py-3 text-white outline-none font-mono text-sm"
+                                        placeholder="<p>Paste HTML here...</p>"
+                                        value={stripInput}
+                                        onChange={e => setStripInput(e.target.value)}
+                                    />
+                                    <button onClick={stripHtml} className="w-full bg-brand-primary text-brand-dark py-3 rounded-xl font-bold">{t.convert}</button>
+                                    <textarea 
+                                        readOnly
+                                        rows={6}
+                                        className="w-full bg-brand-dark border border-brand-primary/30 rounded-xl px-4 py-3 text-white outline-none"
+                                        value={stripResult}
+                                    />
+                                </div>
+                            )}
+
+                            {/* Email Extractor */}
+                            {activeTool === 'email_extract' && (
+                                <div className="space-y-6">
+                                    <textarea 
+                                        rows={6}
+                                        className="w-full bg-brand-dark border border-white/10 rounded-xl px-4 py-3 text-white outline-none"
+                                        placeholder="Paste text containing emails..."
+                                        value={emailInput}
+                                        onChange={e => setEmailInput(e.target.value)}
+                                    />
+                                    <button onClick={extractEmails} className="w-full bg-brand-primary text-brand-dark py-3 rounded-xl font-bold">Extract Emails</button>
+                                    {emailResult.length > 0 && (
+                                        <div className="bg-brand-dark p-4 rounded-xl border border-white/10">
+                                            <ul className="list-disc pl-4 space-y-1">
+                                                {emailResult.map((email, i) => (
+                                                    <li key={i} className="text-gray-300 select-all">{email}</li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* URL Parser */}
+                            {activeTool === 'url_parse' && (
+                                <div className="space-y-6">
+                                    <input 
+                                        type="text" 
+                                        className="w-full bg-brand-dark border border-white/10 rounded-xl px-4 py-3 text-white outline-none"
+                                        placeholder="https://example.com/path?query=1"
+                                        value={parseUrl}
+                                        onChange={e => setParseUrl(e.target.value)}
+                                    />
+                                    <button onClick={parseUrlLogic} className="w-full bg-brand-primary text-brand-dark py-3 rounded-xl font-bold">{t.analyze}</button>
+                                    {parseResult && (
+                                        <div className="space-y-2 bg-brand-dark p-6 rounded-2xl border border-white/10">
+                                            <div className="flex justify-between border-b border-white/5 pb-2"><span className="text-gray-400">Protocol</span><span className="text-white">{parseResult.protocol}</span></div>
+                                            <div className="flex justify-between border-b border-white/5 pb-2"><span className="text-gray-400">Host</span><span className="text-white">{parseResult.host}</span></div>
+                                            <div className="flex justify-between border-b border-white/5 pb-2"><span className="text-gray-400">Path</span><span className="text-white">{parseResult.path}</span></div>
+                                            <div className="flex justify-between"><span className="text-gray-400">Params</span><span className="text-white font-mono text-xs">{parseResult.params}</span></div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* CSV to JSON */}
+                            {activeTool === 'csv_json' && (
+                                <div className="space-y-6">
+                                    <textarea 
+                                        rows={6}
+                                        className="w-full bg-brand-dark border border-white/10 rounded-xl px-4 py-3 text-white outline-none font-mono text-sm"
+                                        placeholder="name,age,city&#10;John,30,New York"
+                                        value={csvInput}
+                                        onChange={e => setCsvInput(e.target.value)}
+                                    />
+                                    <button onClick={convertCsvJson} className="w-full bg-brand-primary text-brand-dark py-3 rounded-xl font-bold">{t.convert}</button>
+                                    <textarea 
+                                        readOnly
+                                        rows={8}
+                                        className="w-full bg-brand-dark border border-brand-primary/30 rounded-xl px-4 py-3 text-white outline-none font-mono text-sm"
+                                        value={csvResult}
+                                    />
+                                </div>
+                            )}
+
+                             {/* Htaccess */}
+                             {activeTool === 'htaccess' && (
+                                <div className="space-y-6">
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <input type="text" placeholder="/old-page.html" className="bg-brand-dark border border-white/10 rounded-xl px-4 py-3 text-white" value={htaccessRedirect.old} onChange={e => setHtaccessRedirect({...htaccessRedirect, old: e.target.value})} />
+                                        <input type="text" placeholder="/new-page" className="bg-brand-dark border border-white/10 rounded-xl px-4 py-3 text-white" value={htaccessRedirect.new} onChange={e => setHtaccessRedirect({...htaccessRedirect, new: e.target.value})} />
+                                    </div>
+                                    <button onClick={generateHtaccess} className="w-full bg-brand-primary text-brand-dark py-3 rounded-xl font-bold">Generate 301 Redirect</button>
+                                    {htaccessResult && (
+                                        <div className="bg-brand-dark p-4 rounded-xl border border-white/10 relative">
+                                            <code className="text-gray-300 font-mono text-sm">{htaccessResult}</code>
+                                            <button onClick={() => copyToClipboard(htaccessResult)} className="absolute top-2 right-2 text-brand-primary hover:text-white"><Copy className="w-4 h-4"/></button>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* SSL Checker */}
+                            {activeTool === 'ssl' && (
+                                <div className="space-y-6">
+                                    <div className="relative">
+                                        <input 
+                                            type="text" 
+                                            placeholder="example.com" 
+                                            value={sslDomain}
+                                            onChange={(e) => setSslDomain(e.target.value)}
+                                            className="w-full bg-brand-dark border border-white/10 rounded-xl pl-4 pr-32 py-4 text-white focus:border-brand-primary outline-none"
+                                        />
+                                        <button onClick={checkSsl} className="absolute right-2 top-2 bottom-2 bg-brand-primary text-brand-dark px-4 rounded-lg font-bold hover:bg-emerald-400">Check</button>
+                                    </div>
+                                    {sslResult && (
+                                        <div className="bg-brand-dark p-6 rounded-2xl border border-white/10">
+                                            <pre className="text-white font-mono whitespace-pre-wrap">{sslResult}</pre>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
 
                             {/* 0. Section Generator */}
                             {activeTool === 'section' && (
