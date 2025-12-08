@@ -1003,8 +1003,48 @@ export const getTestimonials = (lang: Language): Testimonial[] => {
           name: 'Sarah Jenkins',
           role: 'CMO',
           company: 'TechFlow',
-          content: 'ValuePixels transformed our outdated site into a lead-generating machine.',
+          content: 'ValuePixels transformed our outdated site into a lead-generating machine. The new design increased our conversion rate by 45% in just three months.',
           avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80'
+        },
+        {
+          id: 't2',
+          name: 'David Chen',
+          role: 'Founder',
+          company: 'NexusRetail',
+          content: 'Their SEO strategy was game-changing. We went from page 5 to the top 3 results for our main keywords. Highly recommend their team for organic growth.',
+          avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80'
+        },
+        {
+          id: 't3',
+          name: 'Elena Rodriguez',
+          role: 'Product Lead',
+          company: 'FinSphere',
+          content: 'Professional, responsive, and incredibly talented. They delivered our fintech dashboard ahead of schedule with code quality that exceeded our expectations.',
+          avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80'
+        },
+        {
+          id: 't4',
+          name: 'Michael Ross',
+          role: 'CTO',
+          company: 'LogiChain',
+          content: 'Finding a reliable dev partner is hard. ValuePixels made it easy. Their React and Node.js expertise helped us scale our logistics platform seamlessly.',
+          avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80'
+        },
+        {
+          id: 't5',
+          name: 'Amanda Lee',
+          role: 'Marketing Director',
+          company: 'GlowBeauty',
+          content: 'The e-commerce store they built is stunning and fast. Our mobile sales have doubled since the launch. The admin panel makes inventory management a breeze.',
+          avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80'
+        },
+        {
+          id: 't6',
+          name: 'James Wilson',
+          role: 'CEO',
+          company: 'ConstructBuild',
+          content: 'Excellent communication throughout the project. They understood our brand vision perfectly and translated it into a modern, professional website.',
+          avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80'
         }
     ]
 };
