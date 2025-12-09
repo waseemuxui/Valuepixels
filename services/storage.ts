@@ -1,4 +1,3 @@
-
 import { User, Order, BlogPost, CustomPage, Product, PaymentAccount, SiteConfig, TeamMember } from '../types';
 import { MOCK_PRODUCTS } from '../constants';
 
@@ -82,10 +81,40 @@ const DEFAULT_CONFIG: SiteConfig = {
 // Helper to get/set
 const get = <T>(key: string, defaultVal: T): T => {
     if (typeof window === 'undefined') return defaultVal;
-    const stored = localStorage.getItem(key);
-    if (!stored) return defaultVal;
     try {
-        return JSON.parse(stored);
+        const stored = localStorage.getItem(key);
+        if (!stored) return defaultVal;
+        
+        const parsed = JSON.parse(stored);
+
+        // Valid null check - return default if null or undefined explicitly stored
+        if (parsed === null || parsed === undefined) {
+            return defaultVal;
+        }
+
+        // STRICT ARRAY CHECK: If default is array, parsed MUST be array
+        if (Array.isArray(defaultVal)) {
+            if (!Array.isArray(parsed)) {
+                console.warn(`Storage key "${key}" expected Array but got ${typeof parsed}. Resetting to default.`);
+                return defaultVal;
+            }
+            return parsed as T;
+        }
+        
+        // If expected default is an object (and not array), ensure we return an object
+        if (
+            typeof defaultVal === 'object' && 
+            defaultVal !== null
+        ) {
+            // If parsed data is not a valid object, return default to prevent crashes
+            if (typeof parsed !== 'object' || Array.isArray(parsed)) {
+                return defaultVal;
+            }
+            // Merge to ensure no missing keys if new properties were added to types later
+            return { ...defaultVal, ...parsed };
+        }
+
+        return parsed as T;
     } catch {
         return defaultVal;
     }
@@ -93,7 +122,11 @@ const get = <T>(key: string, defaultVal: T): T => {
 
 const set = (key: string, val: any) => {
     if (typeof window === 'undefined') return;
-    localStorage.setItem(key, JSON.stringify(val));
+    try {
+        localStorage.setItem(key, JSON.stringify(val));
+    } catch (e) {
+        console.error("Storage save failed", e);
+    }
 };
 
 // --- API ---
@@ -108,6 +141,7 @@ export const storage = {
             set('sf_users', users);
         }
     },
+    saveUsers: (users: User[]) => set('sf_users', users), 
     
     // ORDERS
     getOrders: () => get<Order[]>('sf_orders', []),

@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect } from 'react';
-import { LayoutDashboard, FileText, Settings, Search, Plus, BarChart3, Users, Globe, Save, Trash2, Edit, X, CheckSquare, ShoppingBag, DollarSign, ExternalLink, CheckCircle, XCircle, Sparkles, Loader2, Linkedin, Twitter, Github } from 'lucide-react';
+import { LayoutDashboard, FileText, Settings, Search, Plus, BarChart3, Users, Globe, Save, Trash2, Edit, X, CheckSquare, ShoppingBag, DollarSign, ExternalLink, CheckCircle, XCircle, Sparkles, Loader2, Linkedin, Twitter, Github, Shield, Eye } from 'lucide-react';
 import { BlogPost, User, CustomPage, Product, Order, PaymentAccount, SiteConfig, TeamMember } from '../types';
 import { storage } from '../services/storage';
 import { generateBlogPost } from '../services/geminiService';
@@ -17,9 +18,17 @@ interface AdminDashboardProps {
   setTeamMembers?: React.Dispatch<React.SetStateAction<TeamMember[]>>;
 }
 
+interface StatCardProps {
+  title: string;
+  value: string | number;
+  icon: React.ElementType;
+  color: string;
+}
+
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, posts, setPosts, pages, setPages, products, setProducts, teamMembers = [], setTeamMembers = (_: any) => {} }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'posts' | 'pages' | 'shop' | 'payments' | 'team' | 'settings' | 'ai-gen'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'posts' | 'pages' | 'shop' | 'payments' | 'team' | 'users' | 'settings' | 'ai-gen'>('overview');
   const [orders, setOrders] = useState<Order[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [paymentAccounts, setPaymentAccounts] = useState<PaymentAccount[]>([]);
   const [siteConfig, setSiteConfig] = useState<SiteConfig>(storage.getSiteConfig());
   
@@ -32,6 +41,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, posts, setPosts, 
   const [currentAccount, setCurrentAccount] = useState<Partial<PaymentAccount>>({});
   const [currentMember, setCurrentMember] = useState<Partial<TeamMember>>({});
 
+  // Proof Viewer State
+  const [viewingProof, setViewingProof] = useState<string | null>(null);
+
   // AI Gen State
   const [aiTopic, setAiTopic] = useState('');
   const [aiCount, setAiCount] = useState(1);
@@ -40,10 +52,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, posts, setPosts, 
   const [aiProgress, setAiProgress] = useState(0);
 
   useEffect(() => {
-      // Load orders, accounts, config from storage on mount/update
+      // Load orders, accounts, config, users from storage on mount/update
       setOrders(storage.getOrders());
       setPaymentAccounts(storage.getPaymentAccounts());
       setSiteConfig(storage.getSiteConfig());
+      setUsers(storage.getUsers());
   }, [activeTab]);
 
   const handleDeletePost = (id: string) => {
@@ -86,12 +99,30 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, posts, setPosts, 
       }
   }
 
+  const handleRoleChange = (userId: string, newRole: string) => {
+      if (userId === user.id) {
+          alert("You cannot change your own role.");
+          return;
+      }
+      
+      const updatedUsers = users.map(u => {
+          if (u.id === userId) {
+              return { ...u, role: newRole as 'admin' | 'user' };
+          }
+          return u;
+      });
+      
+      setUsers(updatedUsers);
+      storage.saveUsers(updatedUsers);
+  };
+
   const handleVerifyOrder = (orderId: string, approved: boolean) => {
       const updatedOrder = orders.find(o => o.id === orderId);
       if (updatedOrder) {
           updatedOrder.status = approved ? 'active' : 'cancelled';
           storage.updateOrder(updatedOrder);
-          setOrders([...orders]); // Trigger re-render
+          // Force refresh orders from storage to ensure we have the latest state
+          setOrders(storage.getOrders());
       }
   };
 
@@ -231,9 +262,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, posts, setPosts, 
 
       try {
           for(let i=0; i<total; i++) {
-              // Create slight variations in prompt to get unique posts if topic is same
               const variation = i === 0 ? aiTopic : `${aiTopic} part ${i+1}`;
-              
               const result = await generateBlogPost(variation, aiTone);
               
               if(result) {
@@ -272,7 +301,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, posts, setPosts, 
       }
   };
 
-  const StatCard = ({ title, value, icon: Icon, color }: any) => (
+  const StatCard = ({ title, value, icon: Icon, color }: StatCardProps) => (
     <div className="bg-white/5 border border-white/10 p-6 rounded-2xl flex items-center gap-4">
       <div className={`p-4 rounded-xl ${color}/10`}>
         <Icon className={`w-8 h-8 ${color}`} />
@@ -286,359 +315,452 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, posts, setPosts, 
 
   return (
     <div className="min-h-screen bg-brand-dark pt-24 pb-12 px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row gap-8">
-      
-      {/* Sidebar */}
-      <div className="w-full md:w-64 flex-shrink-0 space-y-2">
-        <div className="bg-brand-surface border border-white/10 rounded-2xl p-6 mb-6 text-center">
-            <div className="w-20 h-20 bg-brand-primary rounded-full mx-auto mb-4 flex items-center justify-center text-brand-dark font-bold text-2xl">
-                {user.name.charAt(0)}
-            </div>
-            <h3 className="text-white font-bold">{user.name}</h3>
-            <span className="inline-block px-3 py-1 bg-brand-primary/20 text-brand-primary text-xs font-bold rounded-full mt-2 uppercase">Admin</span>
-        </div>
-
-        <nav className="bg-brand-surface border border-white/10 rounded-2xl p-4 space-y-1">
+       {/* Sidebar */}
+       <div className="w-full md:w-64 flex-shrink-0">
+        <div className="bg-brand-surface border border-white/10 rounded-2xl p-4 sticky top-24">
           <button onClick={() => setActiveTab('overview')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${activeTab === 'overview' ? 'bg-brand-primary text-brand-dark font-bold' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}>
-            <LayoutDashboard className="w-5 h-5" /> Overview
-          </button>
-          <button onClick={() => setActiveTab('ai-gen')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${activeTab === 'ai-gen' ? 'bg-brand-primary text-brand-dark font-bold' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}>
-            <Sparkles className="w-5 h-5" /> AI Generator
+            <BarChart3 className="w-5 h-5" /> Overview
           </button>
           <button onClick={() => setActiveTab('posts')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${activeTab === 'posts' ? 'bg-brand-primary text-brand-dark font-bold' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}>
             <FileText className="w-5 h-5" /> Blog Posts
           </button>
           <button onClick={() => setActiveTab('pages')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${activeTab === 'pages' ? 'bg-brand-primary text-brand-dark font-bold' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}>
-            <Globe className="w-5 h-5" /> Custom Pages
+            <LayoutDashboard className="w-5 h-5" /> Pages
           </button>
           <button onClick={() => setActiveTab('shop')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${activeTab === 'shop' ? 'bg-brand-primary text-brand-dark font-bold' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}>
-            <ShoppingBag className="w-5 h-5" /> Shop Manager
-          </button>
-          <button onClick={() => setActiveTab('team')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${activeTab === 'team' ? 'bg-brand-primary text-brand-dark font-bold' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}>
-            <Users className="w-5 h-5" /> Team Members
+            <ShoppingBag className="w-5 h-5" /> Shop
           </button>
           <button onClick={() => setActiveTab('payments')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${activeTab === 'payments' ? 'bg-brand-primary text-brand-dark font-bold' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}>
-            <DollarSign className="w-5 h-5" /> Payments & Orders
+            <DollarSign className="w-5 h-5" /> Payments
+          </button>
+          <button onClick={() => setActiveTab('team')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${activeTab === 'team' ? 'bg-brand-primary text-brand-dark font-bold' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}>
+            <Users className="w-5 h-5" /> Team
+          </button>
+          <button onClick={() => setActiveTab('users')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${activeTab === 'users' ? 'bg-brand-primary text-brand-dark font-bold' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}>
+            <Users className="w-5 h-5" /> Users
+          </button>
+          <button onClick={() => setActiveTab('ai-gen')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${activeTab === 'ai-gen' ? 'bg-brand-primary text-brand-dark font-bold' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}>
+            <Sparkles className="w-5 h-5" /> AI Generator
           </button>
           <button onClick={() => setActiveTab('settings')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${activeTab === 'settings' ? 'bg-brand-primary text-brand-dark font-bold' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}>
-            <Settings className="w-5 h-5" /> Site Settings
+            <Settings className="w-5 h-5" /> Settings
           </button>
-        </nav>
+        </div>
       </div>
 
       {/* Main Content */}
-      <div className="flex-1">
+      <div className="flex-1 space-y-6">
         
         {/* OVERVIEW */}
         {activeTab === 'overview' && (
-          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
             <h2 className="text-3xl font-bold text-white">Dashboard Overview</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <StatCard title="Total Orders" value={orders.length} icon={ShoppingBag} color="text-green-400" />
-              <StatCard title="Revenue" value={`$${orders.reduce((acc, o) => acc + parseFloat(o.amount.replace('$','')), 0)}`} icon={BarChart3} color="text-brand-primary" />
-              <StatCard title="Products" value={products.length} icon={ShoppingBag} color="text-blue-400" />
-              <StatCard title="Team" value={teamMembers.length} icon={Users} color="text-purple-400" />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <StatCard title="Total Orders" value={orders.length} icon={ShoppingBag} color="text-blue-500" />
+              <StatCard title="Active Products" value={products.length} icon={CheckSquare} color="text-green-500" />
+              <StatCard title="Blog Posts" value={posts.length} icon={FileText} color="text-purple-500" />
+              <StatCard title="Total Users" value={users.length} icon={Users} color="text-orange-500" />
             </div>
-            {/* ... Analytics graph ... */}
-          </div>
-        )}
 
-        {/* TEAM TAB */}
-        {activeTab === 'team' && (
-             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <div className="flex justify-between items-center">
-                    <h2 className="text-3xl font-bold text-white">Team Management</h2>
-                    <button onClick={() => { setEditType('team'); setCurrentMember({}); setIsEditing(true); }} className="flex items-center gap-2 bg-brand-primary text-brand-dark px-4 py-2 rounded-xl font-bold hover:bg-emerald-400 transition-colors">
-                        <Plus className="w-4 h-4" /> Add Member
-                    </button>
-                </div>
-                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {teamMembers.map(member => (
-                        <div key={member.id} className="bg-brand-surface border border-white/10 rounded-2xl p-6 flex flex-col items-center text-center hover:border-brand-primary/30 transition-all">
-                            <img src={member.image} alt={member.name} className="w-24 h-24 rounded-full object-cover border-2 border-brand-primary/20 mb-4" />
-                            <h3 className="text-xl font-bold text-white">{member.name}</h3>
-                            <p className="text-brand-primary text-sm font-bold mb-2">{member.role}</p>
-                            <p className="text-gray-400 text-sm mb-4 line-clamp-2">{member.bio}</p>
-                            <div className="flex gap-2 mt-auto">
-                                <button onClick={() => {setEditType('team'); setCurrentMember(member); setIsEditing(true);}} className="text-brand-primary p-2 hover:bg-white/10 rounded-lg"><Edit className="w-4 h-4"/></button>
-                                <button onClick={() => handleDeleteMember(member.id)} className="text-red-500 p-2 hover:bg-white/10 rounded-lg"><Trash2 className="w-4 h-4"/></button>
-                            </div>
-                        </div>
-                    ))}
-                 </div>
-             </div>
-        )}
-
-        {/* ... (Other Tabs from previous implementation) ... */}
-
-        {/* AI GENERATOR TAB */}
-        {activeTab === 'ai-gen' && (
-             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <h2 className="text-3xl font-bold text-white flex items-center gap-2">
-                    <Sparkles className="w-8 h-8 text-brand-primary" /> Bulk AI Content Generator
-                </h2>
-                <div className="bg-brand-surface border border-white/10 rounded-2xl p-8 max-w-2xl">
-                     {/* ... AI Gen UI ... */}
-                     <div className="space-y-6">
-                        <div>
-                            <label className="text-sm font-bold text-gray-300 block mb-2">Topic / Niche</label>
-                            <input type="text" className="w-full bg-brand-dark border border-white/10 text-white rounded-xl px-4 py-3 focus:border-brand-primary outline-none" placeholder="e.g. Future of Web Development" value={aiTopic} onChange={e => setAiTopic(e.target.value)} />
-                        </div>
-                        <div className="grid grid-cols-2 gap-6">
-                            <div>
-                                <label className="text-sm font-bold text-gray-300 block mb-2">Number of Posts</label>
-                                <input type="number" min="1" max="10" className="w-full bg-brand-dark border border-white/10 text-white rounded-xl px-4 py-3 focus:border-brand-primary outline-none" value={aiCount} onChange={e => setAiCount(parseInt(e.target.value))} />
-                            </div>
-                            <div>
-                                <label className="text-sm font-bold text-gray-300 block mb-2">Tone</label>
-                                <select className="w-full bg-brand-dark border border-white/10 text-white rounded-xl px-4 py-3 focus:border-brand-primary outline-none" value={aiTone} onChange={e => setAiTone(e.target.value)}>
-                                    <option>Professional</option><option>Casual</option><option>Technical</option><option>Persuasive</option><option>Humorous</option>
-                                </select>
-                            </div>
-                        </div>
-                        {aiGenerating && (
-                            <div className="space-y-2">
-                                <div className="flex justify-between text-xs text-brand-primary font-bold uppercase"><span>Generating...</span><span>{aiProgress}%</span></div>
-                                <div className="h-2 bg-brand-dark rounded-full overflow-hidden"><div className="h-full bg-brand-primary transition-all duration-300" style={{ width: `${aiProgress}%` }}></div></div>
-                            </div>
-                        )}
-                        <button onClick={handleBulkGenerate} disabled={aiGenerating} className="w-full bg-gradient-to-r from-brand-primary to-brand-secondary text-white font-bold py-4 rounded-xl shadow-lg hover:shadow-brand-primary/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
-                            {aiGenerating ? <Loader2 className="w-5 h-5 animate-spin"/> : <Sparkles className="w-5 h-5" />}
-                            {aiGenerating ? 'Creating Content...' : 'Generate Bulk Content'}
-                        </button>
-                    </div>
-                </div>
-             </div>
-        )}
-
-        {/* SITE SETTINGS TAB */}
-        {activeTab === 'settings' && (
-            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <h2 className="text-3xl font-bold text-white">Site Settings</h2>
-                <div className="bg-brand-surface border border-white/10 rounded-2xl p-8">
-                    <form onSubmit={handleSaveConfig} className="space-y-8">
-                        {/* AI Config */}
-                        <div className="p-6 bg-brand-primary/5 rounded-2xl border border-brand-primary/20">
-                            <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2"><Sparkles className="w-5 h-5 text-brand-primary" /> AI Configuration</h3>
-                             <div className="space-y-2"><label className="text-sm font-bold text-gray-300">Gemini API Key</label><input type="password" value={siteConfig.aiApiKey || ''} onChange={e => setSiteConfig({...siteConfig, aiApiKey: e.target.value})} className="w-full bg-brand-dark border border-white/10 text-white rounded-xl pl-4 pr-4 py-3" placeholder="AIzaSy..." /></div>
-                        </div>
-                        {/* General */}
-                        <div>
-                            <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2"><Globe className="w-5 h-5 text-brand-primary" /> General Information</h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div className="space-y-2"><label className="text-sm font-bold text-gray-300">Site Name</label><input type="text" value={siteConfig.siteName} onChange={e => setSiteConfig({...siteConfig, siteName: e.target.value})} className="w-full bg-brand-dark border border-white/10 text-white rounded-xl px-4 py-3" /></div>
-                                <div className="space-y-2"><label className="text-sm font-bold text-gray-300">Tagline / Description</label><input type="text" value={siteConfig.siteDescription} onChange={e => setSiteConfig({...siteConfig, siteDescription: e.target.value})} className="w-full bg-brand-dark border border-white/10 text-white rounded-xl px-4 py-3" /></div>
-                            </div>
-                        </div>
-                        {/* Contact Info */}
-                        <div>
-                            <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2"><Users className="w-5 h-5 text-brand-secondary" /> Contact Details</h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div className="space-y-2"><label className="text-sm font-bold text-gray-300">Contact Email</label><input type="email" value={siteConfig.contactEmail} onChange={e => setSiteConfig({...siteConfig, contactEmail: e.target.value})} className="w-full bg-brand-dark border border-white/10 text-white rounded-xl px-4 py-3" /></div>
-                                <div className="space-y-2"><label className="text-sm font-bold text-gray-300">Phone Number</label><input type="text" value={siteConfig.contactPhone} onChange={e => setSiteConfig({...siteConfig, contactPhone: e.target.value})} className="w-full bg-brand-dark border border-white/10 text-white rounded-xl px-4 py-3" /></div>
-                                <div className="space-y-2 md:col-span-2"><label className="text-sm font-bold text-gray-300">Address</label><input type="text" value={siteConfig.address} onChange={e => setSiteConfig({...siteConfig, address: e.target.value})} className="w-full bg-brand-dark border border-white/10 text-white rounded-xl px-4 py-3" /></div>
-                            </div>
-                        </div>
-                        {/* SEO */}
-                        <div>
-                            <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2"><Search className="w-5 h-5 text-brand-accent" /> SEO Configuration</h3>
-                            <div className="space-y-4">
-                                <div className="space-y-2"><label className="text-sm font-bold text-gray-300">Meta Title</label><input type="text" value={siteConfig.seoTitle} onChange={e => setSiteConfig({...siteConfig, seoTitle: e.target.value})} className="w-full bg-brand-dark border border-white/10 text-white rounded-xl px-4 py-3" /></div>
-                                <div className="space-y-2"><label className="text-sm font-bold text-gray-300">Meta Keywords</label><input type="text" value={siteConfig.seoKeywords} onChange={e => setSiteConfig({...siteConfig, seoKeywords: e.target.value})} className="w-full bg-brand-dark border border-white/10 text-white rounded-xl px-4 py-3" /></div>
-                                <div className="space-y-2"><label className="text-sm font-bold text-gray-300">Meta Description</label><textarea rows={3} value={siteConfig.seoDescription} onChange={e => setSiteConfig({...siteConfig, seoDescription: e.target.value})} className="w-full bg-brand-dark border border-white/10 text-white rounded-xl px-4 py-3" /></div>
-                            </div>
-                        </div>
-                        <button type="submit" className="bg-brand-primary text-brand-dark px-8 py-4 rounded-xl font-bold hover:bg-emerald-400 transition-colors shadow-lg shadow-brand-primary/20 flex items-center gap-2"><Save className="w-5 h-5" /> Save Configuration</button>
-                    </form>
-                </div>
-            </div>
-        )}
-
-        {/* PAYMENTS & ORDERS TAB */}
-        {activeTab === 'payments' && (
-            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <div className="flex justify-between items-center"><h2 className="text-3xl font-bold text-white">Payments & Verification</h2></div>
-                {/* 1. Payment Accounts */}
-                <div className="bg-brand-surface border border-white/10 rounded-2xl p-6">
-                    <div className="flex justify-between items-center mb-6"><h3 className="text-xl font-bold text-white">Payment Methods</h3><button onClick={() => { setEditType('payment'); setCurrentAccount({}); setIsEditing(true); }} className="text-sm bg-brand-primary text-brand-dark px-3 py-2 rounded-lg font-bold hover:bg-emerald-400">+ Add Method</button></div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {paymentAccounts.map(account => (
-                            <div key={account.id} className="bg-brand-dark border border-white/5 p-4 rounded-xl flex justify-between items-start">
-                                <div><h4 className="font-bold text-white flex items-center gap-2"><span className="uppercase text-xs bg-white/10 px-2 py-0.5 rounded text-gray-300">{account.type}</span>{account.name}</h4><p className="text-gray-400 text-sm mt-1">{account.identifier}</p></div>
-                                <div className="flex gap-2"><button onClick={() => { setEditType('payment'); setCurrentAccount(account); setIsEditing(true); }} className="p-1 text-brand-primary hover:bg-white/10 rounded"><Edit className="w-4 h-4" /></button><button onClick={() => handleDeleteAccount(account.id)} className="p-1 text-red-500 hover:bg-white/10 rounded"><Trash2 className="w-4 h-4" /></button></div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-                {/* 2. Order Verification */}
-                <div className="bg-brand-surface border border-white/10 rounded-2xl overflow-hidden">
-                    <div className="p-6 border-b border-white/10"><h3 className="text-xl font-bold text-white">Orders Pending Verification</h3></div>
+            <div className="bg-brand-surface border border-white/10 rounded-2xl p-6">
+                <h3 className="text-xl font-bold text-white mb-4">Recent Orders</h3>
+                <div className="overflow-x-auto">
                     <table className="w-full text-left">
-                        <thead className="bg-white/5 text-gray-400 text-sm uppercase"><tr><th className="p-4">Order ID</th><th className="p-4">Customer</th><th className="p-4">Amount</th><th className="p-4">Proof</th><th className="p-4">Status</th><th className="p-4">Actions</th></tr></thead>
+                        <thead className="text-xs text-gray-500 uppercase bg-white/5">
+                            <tr>
+                                <th className="px-4 py-3 rounded-l-lg">Order ID</th>
+                                <th className="px-4 py-3">User</th>
+                                <th className="px-4 py-3">Service</th>
+                                <th className="px-4 py-3">Amount</th>
+                                <th className="px-4 py-3 rounded-r-lg">Status</th>
+                            </tr>
+                        </thead>
                         <tbody className="divide-y divide-white/5">
-                            {orders.filter(o => o.status === 'pending_verification').map(order => (
-                                <tr key={order.id} className="hover:bg-white/5">
-                                    <td className="p-4 text-white font-mono">{order.id}</td>
-                                    <td className="p-4"><div className="text-white font-bold">{order.userName}</div><div className="text-xs text-gray-400">{order.userEmail}</div></td>
-                                    <td className="p-4 text-brand-primary font-bold">{order.amount}</td>
-                                    <td className="p-4">{order.proofOfPayment ? (<a href={order.proofOfPayment} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-brand-secondary hover:underline text-sm">View Proof <ExternalLink className="w-3 h-3" /></a>) : <span className="text-gray-500 text-xs">No proof uploaded</span>}</td>
-                                    <td className="p-4"><span className="bg-yellow-500/20 text-yellow-400 px-2 py-1 rounded-full text-xs font-bold">Pending</span></td>
-                                    <td className="p-4"><div className="flex gap-2"><button onClick={() => handleVerifyOrder(order.id, true)} className="flex items-center gap-1 bg-green-500/20 text-green-400 px-3 py-1.5 rounded-lg hover:bg-green-500/30 font-bold text-xs"><CheckCircle className="w-3 h-3" /> Approve</button><button onClick={() => handleVerifyOrder(order.id, false)} className="flex items-center gap-1 bg-red-500/20 text-red-400 px-3 py-1.5 rounded-lg hover:bg-red-500/30 font-bold text-xs"><XCircle className="w-3 h-3" /> Reject</button></div></td>
+                            {orders.slice(0, 5).map(order => (
+                                <tr key={order.id} className="hover:bg-white/5 transition-colors">
+                                    <td className="px-4 py-4 font-mono text-sm">{order.id}</td>
+                                    <td className="px-4 py-4 text-sm">{order.userName}</td>
+                                    <td className="px-4 py-4 text-sm">{order.service}</td>
+                                    <td className="px-4 py-4 text-sm">{order.amount}</td>
+                                    <td className="px-4 py-4">
+                                        <span className={`px-2 py-1 rounded text-xs font-bold capitalize ${
+                                            order.status === 'active' ? 'bg-green-500/20 text-green-400' :
+                                            order.status === 'pending_verification' ? 'bg-yellow-500/20 text-yellow-400' :
+                                            'bg-gray-500/20 text-gray-400'
+                                        }`}>{order.status.replace('_', ' ')}</span>
+                                    </td>
                                 </tr>
                             ))}
                         </tbody>
                     </table>
                 </div>
             </div>
+          </div>
         )}
 
-        {/* POSTS TAB */}
-        {activeTab === 'posts' && (
-           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-             <div className="flex justify-between items-center"><h2 className="text-3xl font-bold text-white">Blog Management</h2><button onClick={() => { setEditType('post'); setCurrentPost({}); setIsEditing(true); }} className="flex items-center gap-2 bg-brand-primary text-brand-dark px-4 py-2 rounded-xl font-bold hover:bg-emerald-400 transition-colors"><Plus className="w-4 h-4" /> Create Post</button></div>
-             <div className="bg-brand-surface border border-white/10 rounded-2xl overflow-hidden">
-                <table className="w-full text-left">
-                    <thead className="bg-white/5 text-gray-400 text-sm uppercase"><tr><th className="p-4">Title</th><th className="p-4">Status</th><th className="p-4">Actions</th></tr></thead>
-                    <tbody className="divide-y divide-white/5">
-                        {posts.map(post => (
-                            <tr key={post.id}><td className="p-4 text-white">{post.title}</td><td className="p-4"><span className="text-xs font-bold text-brand-primary bg-brand-primary/10 px-2 py-1 rounded">{post.status}</span></td><td className="p-4 flex gap-2"><button onClick={() => {setEditType('post'); setCurrentPost(post); setIsEditing(true);}} className="text-brand-primary p-1 hover:bg-white/10 rounded"><Edit className="w-4 h-4"/></button><button onClick={() => handleDeletePost(post.id)} className="text-red-500 p-1 hover:bg-white/10 rounded"><Trash2 className="w-4 h-4"/></button></td></tr>
-                        ))}
-                    </tbody>
-                </table>
-             </div>
-           </div>
-        )}
-        
-        {/* PAGES TAB */}
-        {activeTab === 'pages' && (
-            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <div className="flex justify-between items-center"><h2 className="text-3xl font-bold text-white">Custom Pages</h2><button onClick={() => { setEditType('page'); setCurrentPage({}); setIsEditing(true); }} className="flex items-center gap-2 bg-brand-primary text-brand-dark px-4 py-2 rounded-xl font-bold hover:bg-emerald-400 transition-colors"><Plus className="w-4 h-4" /> Create Page</button></div>
-                 <div className="bg-brand-surface border border-white/10 rounded-2xl overflow-hidden">
-                    <table className="w-full text-left">
-                        <thead className="bg-white/5 text-gray-400 text-sm uppercase"><tr><th className="p-4">Title</th><th className="p-4">Slug</th><th className="p-4">Actions</th></tr></thead>
-                        <tbody className="divide-y divide-white/5">
-                            {pages.map(page => (
-                                <tr key={page.id}><td className="p-4 text-white">{page.title}</td><td className="p-4 text-gray-400">/{page.slug}</td><td className="p-4 flex gap-2"><button onClick={() => {setEditType('page'); setCurrentPage(page); setIsEditing(true);}} className="text-brand-primary p-1 hover:bg-white/10 rounded"><Edit className="w-4 h-4"/></button><button onClick={() => handleDeletePage(page.id)} className="text-red-500 p-1 hover:bg-white/10 rounded"><Trash2 className="w-4 h-4"/></button></td></tr>
-                            ))}
-                        </tbody>
-                    </table>
-                 </div>
-            </div>
-        )}
-
-        {/* SHOP TAB */}
-        {activeTab === 'shop' && (
-             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <div className="flex justify-between items-center"><h2 className="text-3xl font-bold text-white">Products</h2><button onClick={() => { setEditType('product'); setCurrentProduct({}); setIsEditing(true); }} className="flex items-center gap-2 bg-brand-primary text-brand-dark px-4 py-2 rounded-xl font-bold hover:bg-emerald-400 transition-colors"><Plus className="w-4 h-4" /> Add Product</button></div>
-                 <div className="bg-brand-surface border border-white/10 rounded-2xl overflow-hidden">
-                    <table className="w-full text-left">
-                        <thead className="bg-white/5 text-gray-400 text-sm uppercase"><tr><th className="p-4">Name</th><th className="p-4">Price</th><th className="p-4">Actions</th></tr></thead>
-                        <tbody className="divide-y divide-white/5">
-                            {products.map(p => (
-                                <tr key={p.id}><td className="p-4 text-white">{p.name}</td><td className="p-4 text-white font-bold">${p.price}</td><td className="p-4 flex gap-2"><button onClick={() => {setEditType('product'); setCurrentProduct(p); setIsEditing(true);}} className="text-brand-primary p-1 hover:bg-white/10 rounded"><Edit className="w-4 h-4"/></button><button onClick={() => handleDeleteProduct(p.id)} className="text-red-500 p-1 hover:bg-white/10 rounded"><Trash2 className="w-4 h-4"/></button></td></tr>
-                            ))}
-                        </tbody>
-                    </table>
-                 </div>
-             </div>
-        )}
-
-      </div>
-
-      {/* CREATE/EDIT MODAL */}
-      {isEditing && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setIsEditing(false)}></div>
-            <div className="relative w-full max-w-4xl bg-brand-surface border border-white/10 rounded-3xl shadow-2xl p-8 animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
-                <div className="flex justify-between items-center mb-6">
-                    <h2 className="text-2xl font-bold text-white capitalize">{currentAccount.id || currentPost.id || currentPage.id || currentProduct.id || currentMember.id ? 'Edit ' : 'Add New '} {editType}</h2>
-                    <button onClick={() => setIsEditing(false)} className="text-gray-400 hover:text-white"><X className="w-6 h-6" /></button>
+        {/* PAYMENTS */}
+        {activeTab === 'payments' && (
+             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
+                <div className="flex justify-between items-center">
+                    <h2 className="text-3xl font-bold text-white">Payment & Orders</h2>
+                    <button onClick={() => { setEditType('payment'); setIsEditing(true); setCurrentAccount({}); }} className="flex items-center gap-2 bg-brand-primary text-brand-dark px-4 py-2 rounded-lg font-bold">
+                        <Plus className="w-4 h-4" /> Add Method
+                    </button>
                 </div>
 
-                <form onSubmit={editType === 'post' ? handleSavePost : editType === 'page' ? handleSavePage : editType === 'payment' ? handleSaveAccount : editType === 'team' ? handleSaveMember : handleSaveProduct} className="space-y-6">
-                    
-                    {/* TEAM FORM */}
-                    {editType === 'team' && (
-                        <>
-                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div className="space-y-2"><label className="text-sm font-bold text-gray-300">Name</label><input type="text" required value={currentMember.name || ''} onChange={e => setCurrentMember({...currentMember, name: e.target.value})} className="w-full bg-brand-dark/50 border border-white/10 text-white rounded-xl px-4 py-3" /></div>
-                                <div className="space-y-2"><label className="text-sm font-bold text-gray-300">Role</label><input type="text" required value={currentMember.role || ''} onChange={e => setCurrentMember({...currentMember, role: e.target.value})} className="w-full bg-brand-dark/50 border border-white/10 text-white rounded-xl px-4 py-3" /></div>
-                             </div>
-                             <div className="space-y-2"><label className="text-sm font-bold text-gray-300">Bio</label><textarea rows={3} value={currentMember.bio || ''} onChange={e => setCurrentMember({...currentMember, bio: e.target.value})} className="w-full bg-brand-dark/50 border border-white/10 text-white rounded-xl px-4 py-3" /></div>
-                             <div className="space-y-2"><label className="text-sm font-bold text-gray-300">Image URL</label><input type="text" value={currentMember.image || ''} onChange={e => setCurrentMember({...currentMember, image: e.target.value})} className="w-full bg-brand-dark/50 border border-white/10 text-white rounded-xl px-4 py-3" placeholder="https://..." /></div>
-                             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                <div className="space-y-2"><label className="text-sm font-bold text-gray-300">Twitter URL</label><input type="text" value={currentMember.socials?.twitter || ''} onChange={e => setCurrentMember({...currentMember, socials: {...currentMember.socials, twitter: e.target.value}})} className="w-full bg-brand-dark/50 border border-white/10 text-white rounded-xl px-4 py-3" /></div>
-                                <div className="space-y-2"><label className="text-sm font-bold text-gray-300">LinkedIn URL</label><input type="text" value={currentMember.socials?.linkedin || ''} onChange={e => setCurrentMember({...currentMember, socials: {...currentMember.socials, linkedin: e.target.value}})} className="w-full bg-brand-dark/50 border border-white/10 text-white rounded-xl px-4 py-3" /></div>
-                                <div className="space-y-2"><label className="text-sm font-bold text-gray-300">GitHub URL</label><input type="text" value={currentMember.socials?.github || ''} onChange={e => setCurrentMember({...currentMember, socials: {...currentMember.socials, github: e.target.value}})} className="w-full bg-brand-dark/50 border border-white/10 text-white rounded-xl px-4 py-3" /></div>
-                             </div>
-                        </>
-                    )}
-
-                    {/* PAYMENT FORM */}
-                    {editType === 'payment' && (
-                        <div className="space-y-4">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2"><label className="text-sm font-bold text-gray-300">Account Type</label><select value={currentAccount.type || 'payoneer'} onChange={e => setCurrentAccount({...currentAccount, type: e.target.value as any})} className="w-full bg-brand-dark/50 border border-white/10 text-white rounded-xl px-4 py-3"><option value="payoneer">Payoneer</option><option value="paypal">PayPal</option><option value="bank">Bank Transfer</option></select></div>
-                                <div className="space-y-2"><label className="text-sm font-bold text-gray-300">Display Name</label><input type="text" value={currentAccount.name || ''} onChange={e => setCurrentAccount({...currentAccount, name: e.target.value})} className="w-full bg-brand-dark/50 border border-white/10 text-white rounded-xl px-4 py-3" placeholder="e.g. Corporate Payoneer" /></div>
+                {/* Verification Queue */}
+                <div className="bg-brand-surface border border-white/10 rounded-2xl p-6 mb-8">
+                    <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                        <Shield className="w-5 h-5 text-brand-secondary" /> Verification Queue
+                    </h3>
+                    <div className="space-y-4">
+                        {orders.filter(o => o.status === 'pending_verification').map(order => (
+                            <div key={order.id} className="bg-brand-dark p-4 rounded-xl border border-white/10 flex flex-col md:flex-row items-center justify-between gap-4">
+                                <div>
+                                    <p className="text-white font-bold">{order.id} - {order.service}</p>
+                                    <p className="text-sm text-gray-400">{order.userName} paid {order.amount}</p>
+                                    <p className="text-xs font-mono text-brand-primary mt-1">TXN: {order.transactionId}</p>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    {order.proofOfPayment && (
+                                        <button 
+                                            onClick={() => setViewingProof(order.proofOfPayment!)}
+                                            className="px-3 py-1 bg-white/5 hover:bg-white/10 rounded text-sm text-gray-300 flex items-center gap-2"
+                                        >
+                                            <Eye className="w-4 h-4" /> View Proof
+                                        </button>
+                                    )}
+                                    <button onClick={() => handleVerifyOrder(order.id, true)} className="p-2 bg-green-500/20 text-green-400 rounded-lg hover:bg-green-500/30"><CheckCircle className="w-5 h-5" /></button>
+                                    <button onClick={() => handleVerifyOrder(order.id, false)} className="p-2 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30"><XCircle className="w-5 h-5" /></button>
+                                </div>
                             </div>
-                            <div className="space-y-2"><label className="text-sm font-bold text-gray-300">Identifier (Email/ID/IBAN)</label><input type="text" value={currentAccount.identifier || ''} onChange={e => setCurrentAccount({...currentAccount, identifier: e.target.value})} className="w-full bg-brand-dark/50 border border-white/10 text-white rounded-xl px-4 py-3" placeholder="e.g. admin@sitefix.com" /></div>
-                            <div className="space-y-2"><label className="text-sm font-bold text-gray-300">Instructions</label><textarea value={currentAccount.instructions || ''} onChange={e => setCurrentAccount({...currentAccount, instructions: e.target.value})} className="w-full bg-brand-dark/50 border border-white/10 text-white rounded-xl px-4 py-3" placeholder="e.g. Please include Order ID in description." /></div>
-                        </div>
-                    )}
-
-                    {/* POST FORM */}
-                    {editType === 'post' && (
-                         <>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div className="space-y-2"><label className="text-sm font-bold text-gray-300">Post Title</label><input type="text" required value={currentPost.title || ''} onChange={e => setCurrentPost({...currentPost, title: e.target.value})} className="w-full bg-brand-dark/50 border border-white/10 text-white rounded-xl px-4 py-3 focus:ring-2 focus:ring-brand-primary outline-none" /></div>
-                                 <div className="space-y-2"><label className="text-sm font-bold text-gray-300">Status</label><select value={currentPost.status || 'draft'} onChange={e => setCurrentPost({...currentPost, status: e.target.value as any})} className="w-full bg-brand-dark/50 border border-white/10 text-white rounded-xl px-4 py-3 focus:ring-2 focus:ring-brand-primary outline-none"><option value="draft">Draft</option><option value="published">Published</option></select></div>
-                            </div>
-                            <div className="space-y-2"><label className="text-sm font-bold text-gray-300">Image URL</label><input type="text" value={currentPost.image || ''} onChange={e => setCurrentPost({...currentPost, image: e.target.value})} className="w-full bg-brand-dark/50 border border-white/10 text-white rounded-xl px-4 py-3" placeholder="https://..." /></div>
-                            <div className="space-y-2">
-                                <label className="text-sm font-bold text-gray-300">Content</label>
-                                <RichTextEditor value={currentPost.content || ''} onChange={(val) => setCurrentPost({...currentPost, content: val})} />
-                            </div>
-                        </>
-                    )}
-
-                    {/* PAGE FORM */}
-                    {editType === 'page' && (
-                        <>
-                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div className="space-y-2"><label className="text-sm font-bold text-gray-300">Page Title</label><input type="text" required value={currentPage.title || ''} onChange={e => setCurrentPage({...currentPage, title: e.target.value})} className="w-full bg-brand-dark/50 border border-white/10 text-white rounded-xl px-4 py-3 focus:ring-2 focus:ring-brand-primary outline-none" /></div>
-                                <div className="space-y-2"><label className="text-sm font-bold text-gray-300">Status</label><select value={currentPage.status || 'draft'} onChange={e => setCurrentPage({...currentPage, status: e.target.value as any})} className="w-full bg-brand-dark/50 border border-white/10 text-white rounded-xl px-4 py-3 focus:ring-2 focus:ring-brand-primary outline-none"><option value="draft">Draft</option><option value="published">Published</option></select></div>
-                            </div>
-                            <div className="flex gap-6">
-                                <label className="flex items-center gap-2 cursor-pointer text-gray-300 hover:text-white"><input type="checkbox" checked={currentPage.showInHeader || false} onChange={e => setCurrentPage({...currentPage, showInHeader: e.target.checked})} className="w-5 h-5 rounded border-gray-600 bg-gray-700 text-brand-primary focus:ring-brand-primary" /> Show in Header Menu</label>
-                                <label className="flex items-center gap-2 cursor-pointer text-gray-300 hover:text-white"><input type="checkbox" checked={currentPage.showInFooter || false} onChange={e => setCurrentPage({...currentPage, showInFooter: e.target.checked})} className="w-5 h-5 rounded border-gray-600 bg-gray-700 text-brand-primary focus:ring-brand-primary" /> Show in Footer Menu</label>
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-sm font-bold text-gray-300">Page Content</label>
-                                <RichTextEditor value={currentPage.content || ''} onChange={(val) => setCurrentPage({...currentPage, content: val})} rows={16} />
-                            </div>
-                        </>
-                    )}
-
-                    {/* PRODUCT FORM */}
-                    {editType === 'product' && (
-                        <>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div className="space-y-2"><label className="text-sm font-bold text-gray-300">Product Name</label><input type="text" required value={currentProduct.name || ''} onChange={e => setCurrentProduct({...currentProduct, name: e.target.value})} className="w-full bg-brand-dark/50 border border-white/10 text-white rounded-xl px-4 py-3 focus:ring-2 focus:ring-brand-primary outline-none" /></div>
-                                <div className="space-y-2"><label className="text-sm font-bold text-gray-300">Category</label><input type="text" required value={currentProduct.category || ''} onChange={e => setCurrentProduct({...currentProduct, category: e.target.value})} className="w-full bg-brand-dark/50 border border-white/10 text-white rounded-xl px-4 py-3 focus:ring-2 focus:ring-brand-primary outline-none" /></div>
-                            </div>
-                            <div className="space-y-2"><label className="text-sm font-bold text-gray-300">Price ($)</label><input type="number" required value={currentProduct.price || ''} onChange={e => setCurrentProduct({...currentProduct, price: e.target.value})} className="w-full bg-brand-dark/50 border border-white/10 text-white rounded-xl px-4 py-3 focus:ring-2 focus:ring-brand-primary outline-none" /></div>
-                            <div className="space-y-2"><label className="text-sm font-bold text-gray-300">Description</label><textarea rows={4} value={currentProduct.description || ''} onChange={e => setCurrentProduct({...currentProduct, description: e.target.value})} className="w-full bg-brand-dark/50 border border-white/10 text-white rounded-xl px-4 py-3 focus:ring-2 focus:ring-brand-primary outline-none" /></div>
-                        </>
-                    )}
-
-                    <div className="flex justify-end gap-4 pt-4 border-t border-white/10">
-                        <button type="button" onClick={() => setIsEditing(false)} className="px-6 py-3 rounded-xl font-bold text-gray-400 hover:text-white hover:bg-white/5 transition-colors">Cancel</button>
-                        <button type="submit" className="bg-brand-primary text-brand-dark px-8 py-3 rounded-xl font-bold hover:bg-emerald-400 transition-colors shadow-lg shadow-brand-primary/20">Save</button>
+                        ))}
+                        {orders.filter(o => o.status === 'pending_verification').length === 0 && <p className="text-gray-500">No orders pending verification.</p>}
                     </div>
+                </div>
+
+                {/* Payment Accounts */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {paymentAccounts.map(account => (
+                        <div key={account.id} className="bg-brand-surface border border-white/10 rounded-xl p-6 relative group">
+                            <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button onClick={() => { setEditType('payment'); setCurrentAccount(account); setIsEditing(true); }} className="p-1.5 bg-white/10 rounded hover:bg-white/20"><Edit className="w-4 h-4 text-white" /></button>
+                                <button onClick={() => handleDeleteAccount(account.id)} className="p-1.5 bg-red-500/10 rounded hover:bg-red-500/20"><Trash2 className="w-4 h-4 text-red-400" /></button>
+                            </div>
+                            <h4 className="font-bold text-white text-lg capitalize">{account.name}</h4>
+                            <span className="text-xs bg-brand-primary/10 text-brand-primary px-2 py-0.5 rounded uppercase">{account.type}</span>
+                            <p className="text-gray-400 text-sm mt-2">{account.identifier}</p>
+                            <p className="text-gray-500 text-xs mt-2">{account.instructions}</p>
+                        </div>
+                    ))}
+                </div>
+             </div>
+        )}
+
+        {/* TEAM */}
+        {activeTab === 'team' && (
+             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
+                <div className="flex justify-between items-center">
+                    <h2 className="text-3xl font-bold text-white">Team Management</h2>
+                    <button onClick={() => { setEditType('team'); setIsEditing(true); setCurrentMember({}); }} className="flex items-center gap-2 bg-brand-primary text-brand-dark px-4 py-2 rounded-lg font-bold">
+                        <Plus className="w-4 h-4" /> Add Member
+                    </button>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {teamMembers.map(member => (
+                        <div key={member.id} className="bg-brand-surface border border-white/10 rounded-2xl p-6 relative group">
+                            <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                                <button onClick={() => { setEditType('team'); setCurrentMember(member); setIsEditing(true); }} className="p-1.5 bg-black/50 rounded hover:bg-black/70"><Edit className="w-4 h-4 text-white" /></button>
+                                <button onClick={() => handleDeleteMember(member.id)} className="p-1.5 bg-red-500/80 rounded hover:bg-red-600"><Trash2 className="w-4 h-4 text-white" /></button>
+                            </div>
+                            <div className="flex items-center gap-4 mb-4">
+                                <img src={member.image} alt={member.name} className="w-16 h-16 rounded-full object-cover" />
+                                <div>
+                                    <h3 className="font-bold text-white">{member.name}</h3>
+                                    <p className="text-brand-primary text-sm">{member.role}</p>
+                                </div>
+                            </div>
+                            <p className="text-gray-400 text-sm">{member.bio}</p>
+                        </div>
+                    ))}
+                </div>
+             </div>
+        )}
+        
+        {/* USERS */}
+        {activeTab === 'users' && (
+             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
+                <h2 className="text-3xl font-bold text-white">User Management</h2>
+                <div className="bg-brand-surface border border-white/10 rounded-2xl overflow-hidden">
+                    <table className="w-full text-left">
+                        <thead className="bg-white/5 text-gray-400 uppercase text-xs">
+                            <tr>
+                                <th className="px-6 py-4">User</th>
+                                <th className="px-6 py-4">Email</th>
+                                <th className="px-6 py-4">Role</th>
+                                <th className="px-6 py-4">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-white/5">
+                            {users.map(u => (
+                                <tr key={u.id}>
+                                    <td className="px-6 py-4">
+                                        <div className="flex items-center gap-3">
+                                            <img src={u.avatar} alt={u.name} className="w-8 h-8 rounded-full" />
+                                            <span className="text-white font-medium">{u.name}</span>
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4 text-gray-400 text-sm">{u.email}</td>
+                                    <td className="px-6 py-4">
+                                        <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${u.role === 'admin' ? 'bg-purple-500/20 text-purple-400' : 'bg-blue-500/20 text-blue-400'}`}>
+                                            {u.role}
+                                        </span>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <select 
+                                            value={u.role} 
+                                            onChange={(e) => handleRoleChange(u.id, e.target.value)}
+                                            className="bg-black/20 border border-white/10 rounded px-2 py-1 text-xs text-white outline-none focus:border-brand-primary"
+                                        >
+                                            <option value="user">User</option>
+                                            <option value="admin">Admin</option>
+                                        </select>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+             </div>
+        )}
+
+        {/* SETTINGS */}
+        {activeTab === 'settings' && (
+            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
+                <h2 className="text-3xl font-bold text-white">Site Settings</h2>
+                
+                <form onSubmit={handleSaveConfig} className="space-y-8">
+                    {/* General */}
+                    <div className="bg-brand-surface border border-white/10 rounded-2xl p-6">
+                        <h3 className="text-xl font-bold text-white mb-6 border-b border-white/5 pb-2">General Information</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                                <label className="text-sm font-bold text-gray-300">Site Name</label>
+                                <input type="text" value={siteConfig.siteName} onChange={e => setSiteConfig({...siteConfig, siteName: e.target.value})} className="w-full bg-brand-dark border border-white/10 rounded-xl px-4 py-3 text-white" />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-bold text-gray-300">Contact Email</label>
+                                <input type="email" value={siteConfig.contactEmail} onChange={e => setSiteConfig({...siteConfig, contactEmail: e.target.value})} className="w-full bg-brand-dark border border-white/10 rounded-xl px-4 py-3 text-white" />
+                            </div>
+                             <div className="space-y-2">
+                                <label className="text-sm font-bold text-gray-300">Contact Phone</label>
+                                <input type="text" value={siteConfig.contactPhone} onChange={e => setSiteConfig({...siteConfig, contactPhone: e.target.value})} className="w-full bg-brand-dark border border-white/10 rounded-xl px-4 py-3 text-white" />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-bold text-gray-300">Address</label>
+                                <input type="text" value={siteConfig.address} onChange={e => setSiteConfig({...siteConfig, address: e.target.value})} className="w-full bg-brand-dark border border-white/10 rounded-xl px-4 py-3 text-white" />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* SEO */}
+                    <div className="bg-brand-surface border border-white/10 rounded-2xl p-6">
+                        <h3 className="text-xl font-bold text-white mb-6 border-b border-white/5 pb-2">SEO Configuration</h3>
+                         <div className="space-y-4">
+                            <div className="space-y-2">
+                                <label className="text-sm font-bold text-gray-300">Meta Title</label>
+                                <input type="text" value={siteConfig.seoTitle} onChange={e => setSiteConfig({...siteConfig, seoTitle: e.target.value})} className="w-full bg-brand-dark border border-white/10 rounded-xl px-4 py-3 text-white" />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-bold text-gray-300">Meta Description</label>
+                                <textarea rows={3} value={siteConfig.seoDescription} onChange={e => setSiteConfig({...siteConfig, seoDescription: e.target.value})} className="w-full bg-brand-dark border border-white/10 rounded-xl px-4 py-3 text-white" />
+                            </div>
+                         </div>
+                    </div>
+
+                    {/* AI Key */}
+                    <div className="bg-brand-surface border border-white/10 rounded-2xl p-6">
+                         <h3 className="text-xl font-bold text-white mb-6 border-b border-white/5 pb-2">Integrations</h3>
+                         <div className="space-y-2">
+                             <label className="text-sm font-bold text-gray-300">Gemini AI API Key</label>
+                             <div className="flex gap-2">
+                                 <input type="password" value={siteConfig.aiApiKey || ''} onChange={e => setSiteConfig({...siteConfig, aiApiKey: e.target.value})} placeholder="sk-..." className="w-full bg-brand-dark border border-white/10 rounded-xl px-4 py-3 text-white" />
+                             </div>
+                             <p className="text-xs text-gray-500">Required for AI Consultant and Content Generator features.</p>
+                         </div>
+                    </div>
+
+                    <button type="submit" className="bg-brand-primary text-brand-dark px-8 py-3 rounded-xl font-bold hover:bg-emerald-400 transition-colors">
+                        Save Changes
+                    </button>
                 </form>
             </div>
-        </div>
-      )}
+        )}
 
+        {/* AI GENERATOR */}
+        {activeTab === 'ai-gen' && (
+            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
+                <h2 className="text-3xl font-bold text-white flex items-center gap-2">
+                    <Sparkles className="w-8 h-8 text-brand-secondary" /> AI Content Generator
+                </h2>
+                
+                <div className="bg-brand-surface border border-white/10 rounded-2xl p-8 max-w-2xl">
+                    <div className="space-y-6">
+                        <div className="space-y-2">
+                            <label className="text-sm font-bold text-gray-300">Topic / Keyword</label>
+                            <input type="text" value={aiTopic} onChange={e => setAiTopic(e.target.value)} placeholder="e.g. The Future of Web Design" className="w-full bg-brand-dark border border-white/10 rounded-xl px-4 py-3 text-white" />
+                        </div>
+                        <div className="grid grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                                <label className="text-sm font-bold text-gray-300">Number of Posts</label>
+                                <select value={aiCount} onChange={e => setAiCount(parseInt(e.target.value))} className="w-full bg-brand-dark border border-white/10 rounded-xl px-4 py-3 text-white">
+                                    {[1,3,5,10].map(n => <option key={n} value={n}>{n}</option>)}
+                                </select>
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-bold text-gray-300">Tone</label>
+                                <select value={aiTone} onChange={e => setAiTone(e.target.value)} className="w-full bg-brand-dark border border-white/10 rounded-xl px-4 py-3 text-white">
+                                    <option>Professional</option>
+                                    <option>Casual</option>
+                                    <option>Enthusiastic</option>
+                                    <option>Technical</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        {aiGenerating && (
+                            <div className="space-y-2">
+                                <div className="flex justify-between text-xs text-gray-400">
+                                    <span>Generating...</span>
+                                    <span>{aiProgress}%</span>
+                                </div>
+                                <div className="w-full bg-brand-dark rounded-full h-2 overflow-hidden">
+                                    <div className="bg-brand-secondary h-full transition-all duration-300" style={{width: `${aiProgress}%`}}></div>
+                                </div>
+                            </div>
+                        )}
+
+                        <button 
+                            onClick={handleBulkGenerate} 
+                            disabled={aiGenerating}
+                            className="w-full bg-gradient-to-r from-brand-secondary to-purple-600 text-white py-4 rounded-xl font-bold shadow-lg shadow-purple-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            {aiGenerating ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : 'Generate Content'}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )}
+
+        {/* --- MODAL FOR CREATE/EDIT --- */}
+        {isEditing && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setIsEditing(false)}></div>
+                <div className="relative bg-brand-surface border border-white/10 rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto p-8 shadow-2xl animate-in zoom-in-95">
+                    <button onClick={() => setIsEditing(false)} className="absolute top-4 right-4 text-gray-400 hover:text-white"><X className="w-6 h-6" /></button>
+                    
+                    <h2 className="text-2xl font-bold text-white mb-6 capitalize">
+                        {currentPost.id || currentPage.id || currentProduct.id || currentAccount.id || currentMember.id ? 'Edit' : 'Create'} {editType}
+                    </h2>
+
+                    {editType === 'post' && (
+                        <form onSubmit={handleSavePost} className="space-y-6">
+                            <div className="space-y-2">
+                                <label className="text-sm font-bold text-gray-300">Title</label>
+                                <input type="text" value={currentPost.title || ''} onChange={e => setCurrentPost({...currentPost, title: e.target.value})} className="w-full bg-brand-dark border border-white/10 rounded-xl px-4 py-3 text-white" required />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-bold text-gray-300">Image URL</label>
+                                <input type="text" value={currentPost.image || ''} onChange={e => setCurrentPost({...currentPost, image: e.target.value})} className="w-full bg-brand-dark border border-white/10 rounded-xl px-4 py-3 text-white" />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-bold text-gray-300">Content</label>
+                                <RichTextEditor value={currentPost.content || ''} onChange={val => setCurrentPost({...currentPost, content: val})} />
+                            </div>
+                            <div className="flex justify-end gap-4">
+                                <button type="button" onClick={() => setIsEditing(false)} className="px-6 py-2 rounded-xl border border-white/10 text-gray-300 hover:bg-white/5">Cancel</button>
+                                <button type="submit" className="px-6 py-2 rounded-xl bg-brand-primary text-brand-dark font-bold hover:bg-emerald-400">Save Post</button>
+                            </div>
+                        </form>
+                    )}
+                    
+                    {editType === 'team' && (
+                        <form onSubmit={handleSaveMember} className="space-y-6">
+                            <div className="grid grid-cols-2 gap-6">
+                                <div className="space-y-2">
+                                    <label className="text-sm font-bold text-gray-300">Name</label>
+                                    <input type="text" value={currentMember.name || ''} onChange={e => setCurrentMember({...currentMember, name: e.target.value})} className="w-full bg-brand-dark border border-white/10 rounded-xl px-4 py-3 text-white" required />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-bold text-gray-300">Role</label>
+                                    <input type="text" value={currentMember.role || ''} onChange={e => setCurrentMember({...currentMember, role: e.target.value})} className="w-full bg-brand-dark border border-white/10 rounded-xl px-4 py-3 text-white" required />
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-bold text-gray-300">Profile Image URL</label>
+                                <input type="text" value={currentMember.image || ''} onChange={e => setCurrentMember({...currentMember, image: e.target.value})} className="w-full bg-brand-dark border border-white/10 rounded-xl px-4 py-3 text-white" />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-bold text-gray-300">Bio</label>
+                                <textarea rows={3} value={currentMember.bio || ''} onChange={e => setCurrentMember({...currentMember, bio: e.target.value})} className="w-full bg-brand-dark border border-white/10 rounded-xl px-4 py-3 text-white" />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-bold text-gray-300">Social Links</label>
+                                <div className="grid grid-cols-3 gap-4">
+                                    <input placeholder="LinkedIn URL" value={currentMember.socials?.linkedin || ''} onChange={e => setCurrentMember({...currentMember, socials: {...currentMember.socials, linkedin: e.target.value}})} className="bg-brand-dark border border-white/10 rounded-xl px-4 py-2 text-white text-sm" />
+                                    <input placeholder="Twitter URL" value={currentMember.socials?.twitter || ''} onChange={e => setCurrentMember({...currentMember, socials: {...currentMember.socials, twitter: e.target.value}})} className="bg-brand-dark border border-white/10 rounded-xl px-4 py-2 text-white text-sm" />
+                                    <input placeholder="Github URL" value={currentMember.socials?.github || ''} onChange={e => setCurrentMember({...currentMember, socials: {...currentMember.socials, github: e.target.value}})} className="bg-brand-dark border border-white/10 rounded-xl px-4 py-2 text-white text-sm" />
+                                </div>
+                            </div>
+                            <div className="flex justify-end gap-4">
+                                <button type="button" onClick={() => setIsEditing(false)} className="px-6 py-2 rounded-xl border border-white/10 text-gray-300 hover:bg-white/5">Cancel</button>
+                                <button type="submit" className="px-6 py-2 rounded-xl bg-brand-primary text-brand-dark font-bold hover:bg-emerald-400">Save Member</button>
+                            </div>
+                        </form>
+                    )}
+
+                    {editType === 'payment' && (
+                        <form onSubmit={handleSaveAccount} className="space-y-6">
+                            <div className="space-y-2">
+                                <label className="text-sm font-bold text-gray-300">Account Type</label>
+                                <select value={currentAccount.type} onChange={e => setCurrentAccount({...currentAccount, type: e.target.value as any})} className="w-full bg-brand-dark border border-white/10 rounded-xl px-4 py-3 text-white">
+                                    <option value="payoneer">Payoneer</option>
+                                    <option value="paypal">PayPal</option>
+                                    <option value="bank">Bank Transfer</option>
+                                </select>
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-bold text-gray-300">Display Name</label>
+                                <input type="text" value={currentAccount.name || ''} onChange={e => setCurrentAccount({...currentAccount, name: e.target.value})} className="w-full bg-brand-dark border border-white/10 rounded-xl px-4 py-3 text-white" placeholder="e.g. Corporate PayPal" required />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-bold text-gray-300">Identifier (Email/ID)</label>
+                                <input type="text" value={currentAccount.identifier || ''} onChange={e => setCurrentAccount({...currentAccount, identifier: e.target.value})} className="w-full bg-brand-dark border border-white/10 rounded-xl px-4 py-3 text-white" placeholder="admin@example.com" required />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-bold text-gray-300">Instructions</label>
+                                <textarea rows={3} value={currentAccount.instructions || ''} onChange={e => setCurrentAccount({...currentAccount, instructions: e.target.value})} className="w-full bg-brand-dark border border-white/10 rounded-xl px-4 py-3 text-white" placeholder="Send as Friends & Family..." />
+                            </div>
+                            <div className="flex justify-end gap-4">
+                                <button type="button" onClick={() => setIsEditing(false)} className="px-6 py-2 rounded-xl border border-white/10 text-gray-300 hover:bg-white/5">Cancel</button>
+                                <button type="submit" className="px-6 py-2 rounded-xl bg-brand-primary text-brand-dark font-bold hover:bg-emerald-400">Save Account</button>
+                            </div>
+                        </form>
+                    )}
+                </div>
+            </div>
+        )}
+
+        {/* PROOF VIEWER MODAL */}
+        {viewingProof && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm" onClick={() => setViewingProof(null)}>
+                <div className="relative max-w-3xl max-h-[90vh]">
+                    <img src={viewingProof} alt="Proof of Payment" className="rounded-lg max-w-full max-h-full" />
+                    <button className="absolute -top-12 right-0 text-white hover:text-red-500"><X className="w-8 h-8" /></button>
+                </div>
+            </div>
+        )}
+      </div>
     </div>
   );
 };

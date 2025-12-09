@@ -15,6 +15,13 @@ export const login = async (email: string, password: string): Promise<User | nul
 export const register = async (email: string, password: string, name: string): Promise<User> => {
     await new Promise(resolve => setTimeout(resolve, 500));
     
+    const users = storage.getUsers();
+    const existingUser = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+
+    if (existingUser) {
+        throw new Error('Email already registered');
+    }
+
     const newUser: User = {
         id: Date.now().toString(),
         name,

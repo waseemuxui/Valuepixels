@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { CreditCard, Wallet, CheckCircle, AlertCircle, Building, DollarSign, Bitcoin, ArrowRight, Upload } from 'lucide-react';
+import { CreditCard, Wallet, CheckCircle, AlertCircle, Building, DollarSign, Bitcoin, ArrowRight, Upload, X } from 'lucide-react';
 import { User, Order, PaymentAccount } from '../types';
 import { storage } from '../services/storage';
 import { TEXT_CONTENT, Language } from '../constants';
@@ -21,12 +21,13 @@ const OrderPage: React.FC<OrderPageProps> = ({ user, initialData, onCreateOrder,
     plan: initialData?.plan || '',
     price: initialData?.price || '',
     transactionId: '',
-    proofUrl: ''
+    proofOfPayment: ''
   });
   
   const [paymentAccounts, setPaymentAccounts] = useState<PaymentAccount[]>([]);
   const [selectedAccount, setSelectedAccount] = useState<PaymentAccount | null>(null);
   const [loading, setLoading] = useState(false);
+  const [fileError, setFileError] = useState('');
   
   // @ts-ignore
   const t = TEXT_CONTENT[lang].order || TEXT_CONTENT['EN'].order;
@@ -36,6 +37,24 @@ const OrderPage: React.FC<OrderPageProps> = ({ user, initialData, onCreateOrder,
   useEffect(() => {
       setPaymentAccounts(storage.getPaymentAccounts());
   }, []);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    setFileError('');
+    
+    if (file) {
+        if (file.size > 500000) { // 500KB limit for localStorage safety
+            setFileError('File size too large. Please upload an image under 500KB.');
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            setFormData(prev => ({ ...prev, proofOfPayment: reader.result as string }));
+        };
+        reader.readAsDataURL(file);
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,7 +73,7 @@ const OrderPage: React.FC<OrderPageProps> = ({ user, initialData, onCreateOrder,
         amount: formData.price.startsWith('$') ? formData.price : `$${formData.price}`,
         paymentMethod: selectedAccount?.type,
         transactionId: formData.transactionId,
-        proofOfPayment: formData.proofUrl
+        proofOfPayment: formData.proofOfPayment
       };
 
       onCreateOrder(newOrder);
@@ -167,18 +186,31 @@ const OrderPage: React.FC<OrderPageProps> = ({ user, initialData, onCreateOrder,
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-sm font-bold text-gray-300">{t.proof}</label>
+                                    <label className="text-sm font-bold text-gray-300">Upload Screenshot</label>
                                     <div className="relative">
-                                        <Upload className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                                        <div className="absolute left-4 top-1/2 -translate-y-1/2">
+                                            <Upload className="w-5 h-5 text-brand-primary" />
+                                        </div>
                                         <input 
-                                            type="text" 
-                                            value={formData.proofUrl}
-                                            onChange={e => setFormData({...formData, proofUrl: e.target.value})}
-                                            className="w-full bg-brand-surface border border-white/10 text-white rounded-xl pl-10 pr-4 py-3"
-                                            placeholder="https://imgur.com/..."
+                                            type="file" 
+                                            accept="image/*"
+                                            onChange={handleFileChange}
+                                            className="w-full bg-brand-surface border border-white/10 text-gray-400 rounded-xl pl-12 pr-4 py-3 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-brand-primary/10 file:text-brand-primary hover:file:bg-brand-primary/20 cursor-pointer"
                                         />
                                     </div>
-                                    <p className="text-xs text-gray-500">{t.demoNote}</p>
+                                    {fileError && <p className="text-xs text-red-400 mt-1">{fileError}</p>}
+                                    {formData.proofOfPayment && !fileError && (
+                                        <div className="mt-2 relative inline-block">
+                                            <img src={formData.proofOfPayment} alt="Proof" className="h-20 w-auto rounded border border-white/10" />
+                                            <button 
+                                                type="button"
+                                                onClick={() => setFormData(prev => ({...prev, proofOfPayment: ''}))}
+                                                className="absolute -top-2 -right-2 bg-red-500 rounded-full p-0.5 text-white"
+                                            >
+                                                <X className="w-3 h-3" />
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
                           </div>
                       </div>
@@ -188,7 +220,7 @@ const OrderPage: React.FC<OrderPageProps> = ({ user, initialData, onCreateOrder,
 
             <button 
               onClick={handleSubmit}
-              disabled={loading || !selectedAccount || !formData.transactionId}
+              disabled={loading || !selectedAccount || !formData.transactionId || (!formData.proofOfPayment && !fileError)}
               className="w-full bg-gradient-to-r from-brand-primary to-brand-secondary hover:to-brand-primary text-white font-bold py-4 rounded-xl shadow-xl shadow-brand-primary/20 transform hover:-translate-y-1 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed text-lg flex items-center justify-center gap-2"
             >
               {loading ? t.verifying : t.submit} <ArrowRight className="w-5 h-5" />

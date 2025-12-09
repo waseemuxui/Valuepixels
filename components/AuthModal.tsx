@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
-import { X, Mail, Lock, Loader2, AlertCircle } from 'lucide-react';
-import { login } from '../services/authService';
+import { X, Mail, Lock, Loader2, AlertCircle, User as UserIcon } from 'lucide-react';
+import { login, register } from '../services/authService';
 import { User } from '../types';
 
 interface AuthModalProps {
@@ -12,6 +12,7 @@ interface AuthModalProps {
 
 const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin }) => {
   const [isLoginView, setIsLoginView] = useState(true);
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -25,12 +26,22 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin }) => {
     setError('');
 
     try {
-      const user = await login(email, password);
-      if (user) {
-        onLogin(user);
-        onClose();
+      if (isLoginView) {
+          const user = await login(email, password);
+          if (user) {
+            onLogin(user);
+            onClose();
+          } else {
+            setError('Invalid credentials.');
+          }
       } else {
-        setError('Invalid credentials.');
+          try {
+              const user = await register(email, password, name);
+              onLogin(user);
+              onClose();
+          } catch (e: any) {
+              setError(e.message || 'Registration failed. Try a different email.');
+          }
       }
     } catch (err) {
       setError('Something went wrong. Please try again.');
@@ -38,6 +49,14 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin }) => {
       setLoading(false);
     }
   };
+
+  const toggleView = () => {
+      setIsLoginView(!isLoginView);
+      setError('');
+      setEmail('');
+      setPassword('');
+      setName('');
+  }
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
@@ -73,6 +92,23 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin }) => {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {!isLoginView && (
+              <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
+                <label className="text-sm font-bold text-gray-300 ml-1">Full Name</label>
+                <div className="relative">
+                  <UserIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+                  <input 
+                    type="text" 
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="w-full bg-brand-dark/50 border border-white/10 text-white rounded-xl pl-12 pr-4 py-3 focus:ring-2 focus:ring-brand-primary focus:border-transparent outline-none transition-all placeholder-gray-600"
+                    placeholder="John Doe"
+                    required={!isLoginView}
+                  />
+                </div>
+              </div>
+          )}
+
           <div className="space-y-2">
             <label className="text-sm font-bold text-gray-300 ml-1">Email Address</label>
             <div className="relative">
@@ -114,10 +150,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin }) => {
 
         <div className="mt-6 text-center">
           <button 
-            onClick={() => {
-                setIsLoginView(!isLoginView);
-                setError('');
-            }}
+            onClick={toggleView}
             className="text-sm text-gray-400 hover:text-brand-primary transition-colors"
           >
             {isLoginView ? "Don't have an account? Sign up" : "Already have an account? Sign in"}

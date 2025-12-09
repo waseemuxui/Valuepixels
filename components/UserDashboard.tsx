@@ -28,6 +28,17 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user, orders, onNavigate,
     return statuses[status] || status.replace('_', ' ');
   };
 
+  const handleNewOrder = () => {
+      onNavigate('home');
+      // Small delay to allow view change before scrolling
+      setTimeout(() => {
+          const servicesSection = document.getElementById('services');
+          if (servicesSection) {
+              servicesSection.scrollIntoView({ behavior: 'smooth' });
+          }
+      }, 100);
+  };
+
   return (
     <div className="min-h-screen bg-brand-dark pt-24 pb-12 px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row gap-8">
        {/* Sidebar */}
@@ -62,7 +73,7 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user, orders, onNavigate,
                         <h2 className="text-3xl font-bold text-white">{t.orders.title}</h2>
                         <p className="text-gray-400">{t.orders.subtitle}</p>
                     </div>
-                    <button onClick={() => onNavigate('home')} className="flex items-center gap-2 bg-gradient-to-r from-brand-primary to-brand-secondary text-white px-6 py-3 rounded-xl font-bold shadow-lg hover:shadow-brand-primary/20 transition-all">
+                    <button onClick={handleNewOrder} className="flex items-center gap-2 bg-gradient-to-r from-brand-primary to-brand-secondary text-white px-6 py-3 rounded-xl font-bold shadow-lg hover:shadow-brand-primary/20 transition-all">
                         <PlusCircle className="w-5 h-5" /> {t.orders.newOrder}
                     </button>
                   </div>

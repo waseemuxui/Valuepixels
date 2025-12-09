@@ -15,6 +15,7 @@ import ShopPage from './components/ShopPage';
 import LegalPage from './components/LegalPage';
 import ToolsPage from './components/ToolsPage';
 import TeamPage from './components/TeamPage';
+import WhatsAppWidget from './components/WhatsAppWidget';
 import { getServices, getTestimonials, TEXT_CONTENT, Language } from './constants';
 import { ArrowRight, CheckCircle, Code, Rocket, Shield, MessageCircle, Star } from 'lucide-react';
 import { User, BlogPost, CustomPage, Order, Product, SiteConfig, TeamMember } from './types';
@@ -22,7 +23,15 @@ import { storage } from './services/storage';
 
 const App: React.FC = () => {
   const [lang, setLang] = useState<Language>('EN');
-  const [currentView, setCurrentView] = useState<string>('home');
+  
+  // ROUTING LOGIC
+  const getInitialView = () => {
+    if (typeof window === 'undefined') return 'home';
+    const path = window.location.pathname.substring(1); // Remove leading slash
+    return path || 'home';
+  };
+
+  const [currentView, setCurrentView] = useState<string>(getInitialView());
   const [user, setUser] = useState<User | null>(null);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -39,6 +48,34 @@ const App: React.FC = () => {
   // Site Config State
   const [siteConfig, setSiteConfig] = useState<SiteConfig>(storage.getSiteConfig());
 
+  // Handle Browser Back Button (PopState)
+  useEffect(() => {
+    const handlePopState = () => {
+      setCurrentView(getInitialView());
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  // Handle Scrolling for Hash-like routes on Landing Page
+  useEffect(() => {
+    if (['home', 'about', 'services', 'contact', 'ai-consultant'].includes(currentView)) {
+        // If it's a section on the landing page, try to scroll to it
+        // We use a small timeout to allow React to render the landing page first
+        setTimeout(() => {
+            const sectionId = currentView === 'home' ? 'home' : currentView;
+            const el = document.getElementById(sectionId);
+            if (el) {
+                el.scrollIntoView({ behavior: 'smooth' });
+            } else {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }, 100);
+    } else {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [currentView]);
+
   // Load Data from Storage on Mount
   useEffect(() => {
     setAllPosts(storage.getPosts());
@@ -48,25 +85,39 @@ const App: React.FC = () => {
     setSiteConfig(storage.getSiteConfig());
     setAllTeam(storage.getTeamMembers());
     
-    // Check for logged in user session (simplified)
+    // Check for logged in user session (safely)
     const storedUser = localStorage.getItem('sf_session_user');
     if (storedUser) {
-        setUser(JSON.parse(storedUser));
+        try {
+            const parsedUser = JSON.parse(storedUser);
+            if (parsedUser && parsedUser.id) {
+                setUser(parsedUser);
+            }
+        } catch (e) {
+            console.error("Failed to restore session:", e);
+            localStorage.removeItem('sf_session_user');
+        }
     }
   }, [currentView]); // Reload when view changes to keep admin updates in sync
 
   // Apply Site Config (SEO)
   useEffect(() => {
-    document.title = siteConfig.seoTitle;
-    
-    // Update meta description
-    let metaDescription = document.querySelector('meta[name="description"]');
-    if (!metaDescription) {
-        metaDescription = document.createElement('meta');
-        metaDescription.setAttribute('name', 'description');
-        document.head.appendChild(metaDescription);
+    if (siteConfig && typeof siteConfig === 'object') {
+        if (siteConfig.seoTitle) {
+            document.title = siteConfig.seoTitle;
+        }
+        
+        if (siteConfig.seoDescription) {
+            // Update meta description
+            let metaDescription = document.querySelector('meta[name="description"]');
+            if (!metaDescription) {
+                metaDescription = document.createElement('meta');
+                metaDescription.setAttribute('name', 'description');
+                document.head.appendChild(metaDescription);
+            }
+            metaDescription.setAttribute('content', siteConfig.seoDescription);
+        }
     }
-    metaDescription.setAttribute('content', siteConfig.seoDescription);
   }, [siteConfig]);
 
   const t = TEXT_CONTENT[lang];
@@ -76,7 +127,9 @@ const App: React.FC = () => {
 
   const navigate = (view: string) => {
     setCurrentView(view);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    // Push state to URL so refresh works (requires .htaccess/nginx config on server)
+    const url = view === 'home' ? '/' : `/${view}`;
+    window.history.pushState({}, '', url);
   };
 
   const handleLogin = (loggedInUser: User) => {
@@ -135,10 +188,17 @@ const App: React.FC = () => {
     const service = (form.elements.namedItem('service') as HTMLSelectElement).value;
     const message = (form.elements.namedItem('message') as HTMLTextAreaElement).value;
 
-    const subject = `${siteConfig.siteName} Inquiry: ${service} - ${name}`;
+    const adminEmail = siteConfig?.contactEmail || 'waseemuxui@gmail.com';
+    const siteName = siteConfig?.siteName || 'ValuePixels';
+    const subject = `${siteName} Inquiry: ${service} - ${name}`;
     const body = `Name: ${name}\nEmail: ${email}\nService: ${service}\n\nMessage:\n${message}`;
 
-    window.location.href = `mailto:${siteConfig.contactEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    // Use window.location.href to trigger the mail client
+    window.location.href = `mailto:${adminEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+
+    // Provide feedback
+    alert(`Opening your default email client to send this message to ${adminEmail}. Please click 'Send' in your email app.`);
+    form.reset();
   };
 
   // View Logic
@@ -163,8 +223,10 @@ const App: React.FC = () => {
         onOpenAuth={() => setAuthModalOpen(true)}
         onLogout={handleLogout}
         customPages={allPages}
-        siteConfig={siteConfig}
+        siteConfig={siteConfig || {}}
       />
+
+      <WhatsAppWidget siteConfig={siteConfig} />
 
       <AuthModal 
         isOpen={authModalOpen} 
@@ -236,7 +298,7 @@ const App: React.FC = () => {
                 page={allPages.find(p => p.slug === currentView)!} 
             />
         ) : (
-            // Landing Page
+            // Landing Page (Home, About, Services, Contact rendered in one scrollable view)
             <>
                 {/* Hero */}
                 <section id="home" className="relative min-h-screen flex items-center justify-center pt-20 overflow-hidden">
@@ -268,10 +330,7 @@ const App: React.FC = () => {
                                 {t.hero.ctaPrimary}
                             </button>
                             <button 
-                                onClick={() => {
-                                    const el = document.getElementById('services');
-                                    el?.scrollIntoView({ behavior: 'smooth' });
-                                }}
+                                onClick={() => navigate('services')}
                                 className="w-full sm:w-auto px-8 py-4 bg-white/5 hover:bg-white/10 text-white border border-white/10 rounded-xl font-bold text-lg transition-all flex items-center justify-center gap-2"
                             >
                                 {t.hero.ctaSecondary}
@@ -345,7 +404,7 @@ const App: React.FC = () => {
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                         <h2 className="text-3xl md:text-5xl font-bold text-white text-center mb-16">{t.testimonials.heading}</h2>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                            {testimonials.map((testimonial) => (
+                            {testimonials.slice(0, 3).map((testimonial) => (
                                 <div key={testimonial.id} className="bg-brand-dark p-8 rounded-3xl border border-white/5 hover:border-brand-primary/30 transition-all">
                                     <div className="flex gap-1 mb-4">
                                         {[1,2,3,4,5].map(s => <Star key={s} className="w-4 h-4 text-brand-accent fill-brand-accent" />)}
@@ -413,7 +472,7 @@ const App: React.FC = () => {
         lang={lang} 
         onNavigate={navigate} 
         customPages={allPages}
-        siteConfig={siteConfig}
+        siteConfig={siteConfig || {}}
       />
     </div>
   );

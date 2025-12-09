@@ -27,11 +27,14 @@ const Navbar: React.FC<NavbarProps> = ({ lang, setLang, onNavigate, user, onOpen
   const servicesMenuRef = useRef<HTMLDivElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
   
-  const t = TEXT_CONTENT[lang].nav;
+  const t = TEXT_CONTENT[lang]?.nav || TEXT_CONTENT['EN'].nav;
   const servicesList = getServices(lang);
 
   // Filter custom pages for header
   const headerPages = customPages.filter(p => p.showInHeader && p.status === 'published');
+  
+  // Safe site name - ensure it's a string and fallback if siteConfig is missing
+  const safeSiteName = String(siteConfig?.siteName || 'ValuePixels');
 
   useEffect(() => {
     const handleScroll = () => {
@@ -84,9 +87,9 @@ const Navbar: React.FC<NavbarProps> = ({ lang, setLang, onNavigate, user, onOpen
             </div>
             <span className="text-white font-bold text-2xl tracking-tight group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white group-hover:to-brand-primary transition-all">
               {/* Attempt to split by capital letter if only one word, or space if multiple */}
-              {siteConfig.siteName.includes(' ') 
-                ? <>{siteConfig.siteName.split(' ')[0]}<span className="text-brand-primary">{siteConfig.siteName.split(' ').slice(1).join(' ')}</span></>
-                : siteConfig.siteName
+              {safeSiteName.includes(' ') 
+                ? <>{safeSiteName.split(' ')[0]}<span className="text-brand-primary">{safeSiteName.split(' ').slice(1).join(' ')}</span></>
+                : safeSiteName
               }
             </span>
           </div>

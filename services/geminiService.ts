@@ -13,8 +13,19 @@ declare var process: {
 const getClient = () => {
   const config = storage.getSiteConfig();
   const storedKey = config.aiApiKey;
-  // safely access process.env.API_KEY avoiding ReferenceError if process is not defined
-  const envKey = (typeof process !== 'undefined' && process.env && process.env.API_KEY) ? process.env.API_KEY : '';
+  
+  // Safely check environment variables for Vite (import.meta.env) or standard process.env
+  let envKey = '';
+  // @ts-ignore
+  if (typeof import.meta !== 'undefined' && import.meta.env) {
+      // @ts-ignore
+      envKey = import.meta.env.VITE_API_KEY || import.meta.env.API_KEY || '';
+  }
+  
+  if (!envKey && typeof process !== 'undefined' && process.env) {
+      envKey = process.env.API_KEY || '';
+  }
+
   const key = storedKey || envKey;
   return { client: new GoogleGenAI({ apiKey: key }), key };
 };
