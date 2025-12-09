@@ -1,3 +1,4 @@
+
 import { Service, Testimonial, ServiceDetail, Language, Product } from './types';
 
 export type { Language };
@@ -29,7 +30,7 @@ const EN_CONTENT = {
       myDashboard: 'My Dashboard'
     },
     hero: {
-      badge: 'Accepting New Clients for 2025',
+      badge: 'Accepting New Clients for 2026',
       title: 'We Build Digital Experiences That Scale.',
       subtitle: 'ValuePixels helps brands navigate the digital landscape with modern web development, data-driven SEO, and AI-powered strategies. We turn visitors into loyal customers.',
       ctaPrimary: 'Start Project',
@@ -278,8 +279,7 @@ export const TEXT_CONTENT = {
   ES: {
     ...EN_CONTENT,
     nav: { ...EN_CONTENT.nav, services: 'Servicios', about: 'Nosotros', contact: 'Contacto' },
-    // Simplified fallback: In a real app, you would duplicate and translate everything.
-    // For this update, we ensure structure integrity.
+    // Simplified fallback
   },
   FR: { ...EN_CONTENT, nav: { ...EN_CONTENT.nav, services: 'Services', about: 'À propos' } },
   DE: { ...EN_CONTENT, nav: { ...EN_CONTENT.nav, services: 'Dienstleistungen', about: 'Über uns' } },
@@ -301,9 +301,15 @@ export const getServices = (lang: Language): Service[] => {
       s2: { t: 'UI/UX Design', d: 'Intuitive and visually appealing designs that enhance user engagement and brand loyalty.' },
       s3: { t: 'SEO & Optimization', d: 'Improve rankings and drive organic traffic with proven data-driven strategies.' },
       s4: { t: 'E-Commerce', d: 'Complete online store setup with secure payment integration and inventory management.' },
-      s5: { t: 'Site Audits', d: 'Comprehensive analysis of performance, security, and SEO health with actionable reports.' }
-    },
-    // Keep it simple for XML update limit, fallback to EN is handled in component
+      s5: { t: 'Site Audits', d: 'Comprehensive analysis of performance, security, and SEO health with actionable reports.' },
+      // New 6 Services
+      s6: { t: 'Mobile App Dev', d: 'Native and cross-platform mobile applications using React Native and Flutter for iOS and Android.' },
+      s7: { t: 'Cloud Solutions', d: 'Scalable cloud infrastructure setup, migration, and management on AWS, Azure, or Google Cloud.' },
+      s8: { t: 'Digital Branding', d: 'Complete brand identity design, logo creation, and visual style guides for modern businesses.' },
+      s9: { t: 'Content Strategy', d: 'SEO-driven content writing, blog management, and copywriting that converts visitors.' },
+      s10: { t: 'DevOps Engineering', d: 'CI/CD pipeline automation, containerization with Docker, and Kubernetes orchestration.' },
+      s11: { t: 'Blockchain Solutions', d: 'Smart contract development, DApps, and secure blockchain integration for web3 projects.' }
+    }
   };
   const c = content['EN'];
   return [
@@ -311,7 +317,14 @@ export const getServices = (lang: Language): Service[] => {
     { id: 'ui-ux-design', title: c.s2.t, description: c.s2.d, icon: 'palette', features: ['Figma Prototyping', 'User Research', 'Design Systems'] },
     { id: 'seo-optimization', title: c.s3.t, description: c.s3.d, icon: 'line-chart', features: ['Technical SEO', 'Speed Optimization', 'Analytics Setup'] },
     { id: 'ecommerce', title: c.s4.t, description: c.s4.d, icon: 'shopping-bag', features: ['Shopify / Woo', 'Payment Gateways', 'Inventory Sync'] },
-    { id: 'site-audits', title: c.s5.t, description: c.s5.d, icon: 'shield', features: ['Performance Scan', 'Security Check', 'Compliance Review'] }
+    { id: 'site-audits', title: c.s5.t, description: c.s5.d, icon: 'shield', features: ['Performance Scan', 'Security Check', 'Compliance Review'] },
+    // New Services Added
+    { id: 'mobile-app-dev', title: c.s6.t, description: c.s6.d, icon: 'smartphone', features: ['iOS & Android', 'React Native', 'App Store Publish'] },
+    { id: 'cloud-solutions', title: c.s7.t, description: c.s7.d, icon: 'cloud', features: ['AWS / Azure', 'Server Migration', 'Auto-scaling'] },
+    { id: 'digital-branding', title: c.s8.t, description: c.s8.d, icon: 'pen-tool', features: ['Logo Design', 'Brand Identity', 'Style Guides'] },
+    { id: 'content-strategy', title: c.s9.t, description: c.s9.d, icon: 'file-text', features: ['SEO Copywriting', 'Blog Management', 'Email Marketing'] },
+    { id: 'devops-engineering', title: c.s10.t, description: c.s10.d, icon: 'settings', features: ['CI/CD Pipelines', 'Docker', 'Kubernetes'] },
+    { id: 'blockchain-solutions', title: c.s11.t, description: c.s11.d, icon: 'database', features: ['Smart Contracts', 'DApps', 'Web3 Integration'] }
   ];
 };
 
@@ -335,7 +348,7 @@ export const SERVICE_DETAILS_CONTENT: Record<string, Record<string, ServiceDetai
 export const getServiceDetail = (id: string, lang: string): ServiceDetail => {
     // @ts-ignore
     let detail = SERVICE_DETAILS_CONTENT['EN'][id] || SERVICE_DETAILS_CONTENT['EN']['web-development'];
-    return { ...detail, id: id, title: id.replace('-', ' ').toUpperCase() };
+    return { ...detail, id: id, title: id.replace(/-/g, ' ').toUpperCase() };
 }
 
 export const getTestimonials = (lang: Language): Testimonial[] => {
@@ -351,6 +364,13 @@ export const getTestimonials = (lang: Language): Testimonial[] => {
         { id: 't9', name: 'Sophie Martin', role: 'VP Sales', company: 'GlobalTrade', content: 'Our new e-commerce platform is flawless. Sales have gone up significantly.', avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80' },
         { id: 't10', name: 'Kevin Lee', role: 'Manager', company: 'UrbanStyle', content: 'Great design eye. They made our brand look premium and established.', avatar: 'https://images.unsplash.com/photo-1552058544-f2b084996f3d?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80' },
         { id: 't11', name: 'Amanda Blue', role: 'Owner', company: 'BlueSky', content: 'Reliable, affordable, and high quality. The best agency we have worked with.', avatar: 'https://images.unsplash.com/photo-1554151228-14d9def656ec?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80' },
+        // New 6 Testimonials
+        { id: 't12', name: 'John Doe', role: 'CEO', company: 'MobileFirst', content: 'The React Native app they built for us is incredibly smooth. Our users love it!', avatar: 'https://images.unsplash.com/photo-1506277886164-e25aa3f4ef7f?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80' },
+        { id: 't13', name: 'Sarah Miller', role: 'CTO', company: 'CloudScale', content: 'Migrating to AWS was seamless with ValuePixels. We saved 30% on infrastructure costs.', avatar: 'https://images.unsplash.com/photo-1598550874175-4d7112ee7f43?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80' },
+        { id: 't14', name: 'Mike Ross', role: 'Founder', company: 'BrandNew', content: 'The branding overhaul completely revitalized our business image. Stunning work.', avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80' },
+        { id: 't15', name: 'Jessica Taylor', role: 'Marketing', company: 'ContentPro', content: 'Their content strategy doubled our organic traffic in just 4 months. Highly recommended.', avatar: 'https://images.unsplash.com/photo-1607746882042-944635dfe10e?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80' },
+        { id: 't16', name: 'Chris Evans', role: 'Lead Dev', company: 'OpsTech', content: 'The CI/CD pipeline they set up saved our team hours of manual deployment time every week.', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80' },
+        { id: 't17', name: 'Amanda Lewis', role: 'Director', company: 'BlockChainInc', content: 'Secure, efficient, and forward-thinking. Our smart contracts were deployed without a hitch.', avatar: 'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80' },
     ];
 };
 
@@ -416,7 +436,7 @@ export const SECTION_TEMPLATES = {
         html: `<!-- Footer -->
 <footer class="bg-slate-950 text-white pt-16 pb-8 border-t border-slate-800">
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-    <p class="text-slate-500 text-sm">© 2025 ValuePixels. All rights reserved.</p>
+    <p class="text-slate-500 text-sm">© 2026 ValuePixels. All rights reserved.</p>
   </div>
 </footer>`
     }

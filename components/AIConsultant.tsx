@@ -9,7 +9,7 @@ const AIConsultant: React.FC = () => {
     {
       id: 'welcome',
       role: 'model',
-      text: "👋 Hi! I'm your ValuePixels Technical Lead. I can provide instant quotes ($50-$2000) or run a comprehensive Site Audit. \n\nSelect an option below or describe your project!"
+      text: "👋 Hi! I'm your ValuePixels Technical Lead. I can provide instant quotes or run a comprehensive Site Audit for your 2026 digital strategy.\n\nSelect an option below or describe your project!"
     }
   ]);
   const [input, setInput] = useState('');

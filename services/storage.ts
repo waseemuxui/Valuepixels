@@ -1,3 +1,4 @@
+
 import { User, Order, BlogPost, CustomPage, Product, PaymentAccount, SiteConfig, TeamMember } from '../types';
 import { MOCK_PRODUCTS } from '../constants';
 
@@ -28,7 +29,7 @@ const INITIAL_PAYMENT_ACCOUNTS: PaymentAccount[] = [
 const INITIAL_POSTS: BlogPost[] = [
     { 
         id: '1', 
-        title: 'Top 10 SEO Strategies for 2025', 
+        title: 'Top 10 SEO Strategies for 2026', 
         excerpt: 'Discover the latest trends in search engine optimization that will dominate the digital landscape next year.',
         content: '<p>Search Engine Optimization is evolving rapidly...</p><h3>1. Core Web Vitals</h3><p>Speed is king. Google now prioritizes...</p>',
         image: 'https://images.unsplash.com/photo-1571786256017-aee7a0c009b6?ixlib=rb-1.2.1&auto=format&fit=crop&w=1000&q=80',
@@ -36,6 +37,39 @@ const INITIAL_POSTS: BlogPost[] = [
         views: 1240, 
         date: '2023-10-15',
         author: 'ValuePixels Team' 
+    }
+];
+
+const INITIAL_PAGES: CustomPage[] = [
+    {
+        id: 'page-faq',
+        title: 'FAQ',
+        slug: 'faq',
+        content: '<h2>Frequently Asked Questions</h2><p><strong>Q: What services do you offer?</strong><br>A: We offer web development, SEO, branding, and more.</p><p><strong>Q: How long does a project take?</strong><br>A: It depends on the scope, typically 2-4 weeks.</p>',
+        status: 'published',
+        showInHeader: false,
+        showInFooter: true,
+        date: new Date().toISOString()
+    },
+    {
+        id: 'page-careers',
+        title: 'Careers',
+        slug: 'careers',
+        content: '<h2>Join Our Team</h2><p>We are always looking for talented developers and designers. Send your resume to careers@valuepixels.com.</p>',
+        status: 'published',
+        showInHeader: false,
+        showInFooter: true,
+        date: new Date().toISOString()
+    },
+    {
+        id: 'page-refund',
+        title: 'Refund Policy',
+        slug: 'refund-policy',
+        content: '<h2>Refund Policy</h2><p>We offer a satisfaction guarantee. If you are not satisfied with our initial designs, we provide a full refund within 7 days of project start.</p>',
+        status: 'published',
+        showInHeader: false,
+        showInFooter: true,
+        date: new Date().toISOString()
     }
 ];
 
@@ -164,7 +198,7 @@ export const storage = {
     savePosts: (posts: BlogPost[]) => set('sf_posts', posts),
 
     // PAGES
-    getPages: () => get<CustomPage[]>('sf_pages', []),
+    getPages: () => get<CustomPage[]>('sf_pages', INITIAL_PAGES),
     savePages: (pages: CustomPage[]) => set('sf_pages', pages),
 
     // PAYMENT ACCOUNTS
